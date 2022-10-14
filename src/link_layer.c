@@ -54,6 +54,28 @@ void closePorts(){
     close(fd);
 }
 
+void alarmTx(int signal){
+    alarmEnabled = FALSE;
+    alarmCount++;
+
+    llwrite(_SET,5);
+     
+   /*
+
+   if(read_UA() == TRUE){
+        connected = TRUE;
+    }else{
+        printf("Connection Failed! Retrying connection.\n");
+        printf("Try: %d of %d\n",alarmCount,maxAttempts);
+    }
+    
+   */ 
+}
+
+void alarmRx(int signal){
+
+}
+
 ////////////////////////////////////////////////
 // LLOPEN
 ////////////////////////////////////////////////
@@ -64,10 +86,32 @@ int llopen(LinkLayer connectionParameters)
 
     if(connectionParameters.role == LlTx){ 
         // transmitter
+        (void)signal(SIGALRM, alarmTx);
+
+        while (alarmCount < maxAttempts &&  connected == FALSE)
+        {
+            if (alarmEnabled == FALSE)
+            {
+                alarm(waintingTime);
+                alarmEnabled = TRUE;
+            }
+        }
+
+        if(connected == TRUE){
+            printf("Connection Established!\n");
+            printf("Waiting for more data.\n");
+            alarmEnabled = FALSE;
+            alarmCount = 0;
+        }
+        else{
+            printf("Connection failed.\n");
+            printf("Exiting.\n");
+            exit(-1);
+        }
 
     }else{
         // receiver
-
+        (void)signal(SIGALRM, alarmRx);
     }
     return 1;
 }
