@@ -3,19 +3,30 @@
 #include "application_layer.h"
 #include "link_layer.h"
 
+LinkLayerRole getRole(const char* role){
+  if(!strcmp(role, "tx")) return LlTx;
+  else if(!strcmp(role, "rx")) return LlRx;
+  else {
+    perror("Invalid Role!\n");
+    return (LinkLayerRole) NULL;
+  }
+}
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
-                      int nTries, int timeout, const char *filename)
-{
+                      int nTries, int timeout, const char *filename) {
 
-    
     LinkLayer connectionParams;
-  //  connectionParams.serialPort = serialPort; ---- View this later ? problem?
+    // connectionParams.serialPort = serialPort; ---- View this later ? problem?
     strcpy(connectionParams.serialPort,serialPort);
-    strcpy(connectionParams.role,role);
+    connectionParams.role = getRole(role);
     connectionParams.baudRate = baudRate;
     connectionParams.nRetransmissions = nTries;
     connectionParams.timeout = timeout;
-    llopen(connectionParams);
-    // TODO
+
+    //Open Connection
+    if(llopen(connectionParams) > 0){
+      perror("Connection Opening Error!\n");
+      return;
+    }
+
 }
