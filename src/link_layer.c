@@ -6,11 +6,11 @@
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
-void setupPorts(LinkLayer connectionParamenters){
+void setupPorts(LinkLayer connectionParameters){
     fd = open(connectionParameters.serialPort,O_RDWR | O_NOCTTY);
     if (fd < 0)
     {
-        perror(serialPortName);
+        perror(connectionParameters.serialPort);
         exit(-1);
     }
     struct termios oldtio;
@@ -25,7 +25,7 @@ void setupPorts(LinkLayer connectionParamenters){
     // Clear struct for new port settings
     memset(&newtio, 0, sizeof(newtio));
 
-    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+    newtio.c_cflag = connectionParameters.baudRate | CS8 | CLOCAL | CREAD;
     newtio.c_iflag = IGNPAR;
     newtio.c_oflag = 0;
 
@@ -43,8 +43,8 @@ void setupPorts(LinkLayer connectionParamenters){
 }
 
 void closePorts(){
-     // Restore the old port settings
-    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
+    // Restore the old port settings
+   /* if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
     {
         perror("tcsetattr");
         exit(-1);
@@ -52,6 +52,7 @@ void closePorts(){
 
     printf("Closing Connection!\n");
     close(fd);
+    */
 }
 
 void alarmTx(int signal){
@@ -88,16 +89,16 @@ int llopen(LinkLayer connectionParameters)
         // transmitter
         (void)signal(SIGALRM, alarmTx);
 
-        while (alarmCount < maxAttempts &&  connected == FALSE)
+        while (alarmCount < connectionParameters.nRetransmissions &&  connectionEnabled == FALSE)
         {
             if (alarmEnabled == FALSE)
             {
-                alarm(waintingTime);
+                alarm(connectionParameters.timeout);
                 alarmEnabled = TRUE;
             }
         }
 
-        if(connected == TRUE){
+        if(connectionEnabled == TRUE){
             printf("Connection Established!\n");
             printf("Waiting for more data.\n");
             alarmEnabled = FALSE;

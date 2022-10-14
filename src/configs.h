@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <signal.h>
 
+
 /* Flag Configs*/
 #define F 0x7E
 #define A_W 0x03
@@ -31,6 +32,12 @@
 unsigned char _SET[5] = {F,A_W,SET,BCC1_SET,F};
 unsigned char _UA[5] = {F,A_R,UA,BCC1_UA,F};
 
-/*Global Variables*/
+/*Global Settings*/
+#define FALSE 0
+#define TRUE 1
 
+/*Global Variables*/
 int fd;
+int alarmEnabled = FALSE;
+int connectionEnabled = FALSE;
+int alarmCount = 0;
