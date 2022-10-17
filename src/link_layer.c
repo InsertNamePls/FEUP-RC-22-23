@@ -55,27 +55,33 @@ void closePorts(){
     */
 }
 
+int read_UA(){
+    return FALSE;
+}
+
+int read_SET(){
+    return FALSE;
+}
+
 void alarmTx(int signal){
     alarmEnabled = FALSE;
     alarmCount++;
 
+   
     llwrite(_SET,5);
      
-   /*
-
    if(read_UA() == TRUE){
-        connected = TRUE;
+        connectionEnabled = TRUE;
     }else{
         printf("Connection Failed! Retrying connection.\n");
-        printf("Try: %d of %d\n",alarmCount,maxAttempts);
     }
-    
-   */ 
+
 }
 
 void alarmRx(int signal){
-
+    
 }
+
 
 ////////////////////////////////////////////////
 // LLOPEN
@@ -95,6 +101,7 @@ int llopen(LinkLayer connectionParameters)
             {
                 alarm(connectionParameters.timeout);
                 alarmEnabled = TRUE;
+                printf("Sending SET [%d]!\n",alarmCount);
             }
         }
 
@@ -123,6 +130,13 @@ int llopen(LinkLayer connectionParameters)
 int llwrite(const unsigned char *buf, int bufSize)
 {
     write(fd, buf, bufSize);
+
+    printf("[1] : %x \n",buf[0]);
+    printf("[2] : %x \n",buf[1]);
+    printf("[3] : %x \n",buf[2]);
+    printf("[4] : %x \n",buf[3]);
+    printf("[5] : %x \n",buf[4]);
+
     return 0;
 }
 
