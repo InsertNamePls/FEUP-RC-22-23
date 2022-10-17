@@ -17,7 +17,6 @@ void closePorts(){
 }
 
 int compare_response(unsigned char* A,unsigned char* B,int size){
-     printf("2\n");
     if (memcmp(A,B,size)==0) return TRUE;
     return FALSE;
 }
@@ -26,7 +25,12 @@ int compare_response(unsigned char* A,unsigned char* B,int size){
 int read_UA(){
     unsigned char holder[5];
     llread(holder);
-     printf("1\n");
+    printf("Printing read data:\n");
+    printf("[1] : %x \n",holder[0]);
+    printf("[2] : %x \n",holder[1]);
+    printf("[3] : %x \n",holder[2]);
+    printf("[4] : %x \n",holder[3]);
+    printf("[5] : %x \n",holder[4]);
     return (compare_response(_UA,holder,sizeof(_UA)));
 }
 
@@ -47,12 +51,14 @@ void alarmTx(int signal){
 
     llwrite(_SET,5);
      
-   if(read_UA() == TRUE){
+    if(read_UA() == TRUE){
+        printf("UA received!\n");
+    
+
         connectionEnabled = TRUE;
     }else{
         printf("Connection Failed! Retrying connection.\n");
     }
-
 }
 
 void alarmRx(int signal){
@@ -121,10 +127,10 @@ int llopen(LinkLayer connectionParameters)
         }
 
         if(connectionEnabled == TRUE){
-            printf("Connection Established!\n");
-            printf("Waiting for more data.\n");
             alarmEnabled = FALSE;
             alarmCount = 0;
+            printf("Connection Established!\n");
+            printf("Waiting for more data.\n");
         }
         else{
             printf("Connection failed.\n");
@@ -135,7 +141,6 @@ int llopen(LinkLayer connectionParameters)
     }else{
         // receiver
         (void)signal(SIGALRM, alarmRx);
-        
         read_SET();
     }
     
