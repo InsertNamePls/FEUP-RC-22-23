@@ -40,21 +40,17 @@ int next_State(unsigned char recieved,unsigned char expected, int next, int *cur
     }
     return FALSE;
 }
-    /*int x = 0;
-    unsigned char holder[5];
-    while(x < 10){
-        llread(holder);
-        llwrite(_UA,5);
-        x++;
-    }*/
 int read_SET(){
     unsigned char buf[2];
     int state = START;
     int connected = FALSE;
     while(state != STOP && connected == FALSE){
+
+        /* mudar isto para chamadas a funcao LL open*/
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
         printf("char read: %x\n",buf[0]);
+        /*------------------------------------------*/
         if(bytes_read != 0){
             switch(state){
                 case START:
@@ -77,7 +73,10 @@ int read_SET(){
                     if(!next_State(char_received,F,STOP,&state))
                         state = START;
                     else{
+                        printf("Connected with writter!\n");
                         connected = TRUE;
+                        /*Mandar SET se connected*/
+                        llwrite(_UA,5);
                     }
                     break;
                 default:
