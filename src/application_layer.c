@@ -1,5 +1,16 @@
 // Application layer protocol implementation
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <termios.h>
+#include <unistd.h>
+#include <signal.h>
+#include <string.h>
+
+
 #include "application_layer.h"
 #include "link_layer.h"
 
@@ -7,7 +18,8 @@ LinkLayerRole getRole(const char* role){
   if(!strcmp(role, "tx")) return LlTx;
   else if(!strcmp(role, "rx")) return LlRx;
   else {
-    perror("Invalid Role!\n");
+    printf("Invalid Role!\n");
+    
     return (LinkLayerRole) NULL;
   }
 }

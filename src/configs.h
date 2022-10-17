@@ -7,6 +7,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
 
 
 /* Flag Configs*/
