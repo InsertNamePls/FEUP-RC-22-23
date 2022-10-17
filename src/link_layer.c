@@ -6,23 +6,36 @@
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
-void setupPorts(LinkLayer connectionParameters){
-
+/*Aux Functions*/
+void setupPorts(LinkLayer connectionParameters)
+{
 }
 
-void closePorts(){
-    // Restore the old port settings
-   /* 
-    */
-}
-
-int compare_response(unsigned char* A,unsigned char* B,int size){
-    if (memcmp(A,B,size)==0) return TRUE;
+int next_State(unsigned char recieved, unsigned char expected, int next, int *current)
+{
+    if (recieved == expected)
+    {
+        *current = next;
+        return TRUE;
+    }
     return FALSE;
 }
 
-int read_UA(){
-    unsigned char holder[5];
+void closePorts()
+{
+    // Restore the old port settings
+    /*
+     */
+}
+
+int compare_response(unsigned char *A, unsigned char *B, int size)
+{
+    if (memcmp(A, B, size) == 0)
+        return TRUE;
+    return FALSE;
+}
+
+/*unsigned char holder[5];
     llread(holder);
     printf("Printing read data:\n");
     printf("[1] : %x \n",holder[0]);
@@ -31,80 +44,131 @@ int read_UA(){
     printf("[4] : %x \n",holder[3]);
     printf("[5] : %x \n",holder[4]);
     return (compare_response(_UA,holder,sizeof(_UA)));
-}
+*/
 
-int next_State(unsigned char recieved,unsigned char expected, int next, int *current){
-    if(recieved == expected){
-        *current = next;
-        return TRUE;
-    }
-    return FALSE;
-}
-int read_SET(){
-    unsigned char buf[2];
+int read_UA()
+{
     int state = START;
     int connected = FALSE;
-    while(state != STOP && connected == FALSE){
-
+    while (state != STOP && connected == FALSE)
+    {
         /* mudar isto para chamadas a funcao LL open*/
+        unsigned char buf[2];
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
-        printf("char read: %x\n",buf[0]);
+        printf("Char Read: %x\n", buf[0]);
         /*------------------------------------------*/
-        if(bytes_read != 0){
-            switch(state){
-                case START:
-                    if(!next_State(char_received,F,FLAG_RCV,&state))
-                        state = START;
-                    break;
-                case FLAG_RCV:
-                    if(!(next_State(char_received,A_W,A_RCV,&state) || next_State(char_received,F,FLAG_RCV,&state)))
-                        state = START;
-                    break;
-                case A_RCV:
-                    if(!(next_State(char_received,SET,C_RCV,&state) || next_State(char_received,F,FLAG_RCV,&state)))
-                        state = START;
-                    break;
-                case C_RCV:
-                    if(!(next_State(char_received,BCC1_SET,BCC_OK,&state) || next_State(char_received,F,FLAG_RCV,&state)))
-                        state = START;
-                    break;
-                case BCC_OK:
-                    if(!next_State(char_received,F,STOP,&state))
-                        state = START;
-                    else{
-                        printf("Connected with writter!\n");
-                        connected = TRUE;
-                        /*Mandar SET se connected*/
-                        llwrite(_UA,5);
-                    }
-                    break;
-                default:
-                    break;
+        if (bytes_read != 0)
+        {
+            switch (state)
+            {
+            case START:
+                if (!next_State(char_received, F, FLAG_RCV, &state))
+                    state = START;
+                break;
+            case FLAG_RCV:
+                if (!(next_State(char_received, A_R, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case A_RCV:
+                if (!(next_State(char_received, UA, C_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case C_RCV:
+                if (!(next_State(char_received, BCC1_UA, BCC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case BCC_OK:
+                if (!next_State(char_received, F, STOP, &state))
+                {
+                    state = START;
+                }
+                else
+                {
+                    connected = TRUE;
+                    printf("UA received, I shall write you data\n");
+                }
+                break;
+            default:
+                break;
             }
-        }      
+        }
     }
     return connected;
 }
 
-void alarmTx(int signal){
+int read_SET()
+{
+    unsigned char buf[2];
+    int state = START;
+    int connected = FALSE;
+    while (state != STOP && connected == FALSE)
+    {
+        /* mudar isto para chamadas a funcao LL open*/
+        int bytes_read = read(fd, buf, 1);
+        unsigned char char_received = buf[0];
+        printf("char read: %x\n", buf[0]);
+        /*------------------------------------------*/
+        if (bytes_read != 0)
+        {
+            switch (state)
+            {
+            case START:
+                if (!next_State(char_received, F, FLAG_RCV, &state))
+                    state = START;
+                break;
+            case FLAG_RCV:
+                if (!(next_State(char_received, A_W, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case A_RCV:
+                if (!(next_State(char_received, SET, C_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case C_RCV:
+                if (!(next_State(char_received, BCC1_SET, BCC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case BCC_OK:
+                if (!next_State(char_received, F, STOP, &state))
+                    state = START;
+                else
+                {
+                    printf("Connected with writter!\n");
+                    connected = TRUE;
+                    /*Mandar SET se connected prov melhorar isto com alguma funcao or smth*/
+                    llwrite(_UA, 5);
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return connected;
+}
+
+void alarmTx(int signal)
+{
     alarmEnabled = FALSE;
     alarmCount++;
 
-    llwrite(_SET,5);
-     
-    if(read_UA() == TRUE){
+    llwrite(_SET, 5);
+
+    if (read_UA() == TRUE)
+    {
         printf("UA received!\n");
         connectionEnabled = TRUE;
-    }else{
+    }
+    else
+    {
         printf("Connection Failed! Retrying connection.\n");
     }
 }
 
-void alarmRx(int signal){
-    
+void alarmRx(int signal)
+{
 }
-
 
 ////////////////////////////////////////////////
 // LLOPEN
@@ -112,11 +176,11 @@ void alarmRx(int signal){
 int llopen(LinkLayer connectionParameters)
 {
 
-   // setupPorts(connectionParameters);
+    // setupPorts(connectionParameters);
 
     /* Move this to aux functions*/
 
-    fd = open(connectionParameters.serialPort,O_RDWR | O_NOCTTY);
+    fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY);
     if (fd < 0)
     {
         perror(connectionParameters.serialPort);
@@ -139,8 +203,8 @@ int llopen(LinkLayer connectionParameters)
     newtio.c_oflag = 0;
 
     newtio.c_lflag = 0;
-    newtio.c_cc[VTIME] = 0; 
-    newtio.c_cc[VMIN] = 1; 
+    newtio.c_cc[VTIME] = 0;
+    newtio.c_cc[VMIN] = 1;
     tcflush(fd, TCIOFLUSH);
 
     // Set new port settings
@@ -152,39 +216,42 @@ int llopen(LinkLayer connectionParameters)
 
     /*-------------------*/
 
-    if(connectionParameters.role == LlTx){ 
+    if (connectionParameters.role == LlTx)
+    {
         // transmitter
         (void)signal(SIGALRM, alarmTx);
 
-        while (alarmCount < connectionParameters.nRetransmissions &&  connectionEnabled == FALSE)
+        while (alarmCount < connectionParameters.nRetransmissions && connectionEnabled == FALSE)
         {
             if (alarmEnabled == FALSE)
             {
                 alarm(connectionParameters.timeout);
                 alarmEnabled = TRUE;
-                printf("Sending SET [%d]!\n",alarmCount);
+                printf("Sending SET [%d]!\n", alarmCount);
             }
         }
 
-        if(connectionEnabled == TRUE){
+        if (connectionEnabled == TRUE)
+        {
             alarmEnabled = FALSE;
             alarmCount = 0;
             printf("Connection Established!\n");
             printf("Waiting for more data.\n");
         }
-        else{
+        else
+        {
             printf("Connection failed.\n");
             printf("Exiting.\n");
             exit(-1);
         }
-
-    }else{
+    }
+    else
+    {
         // receiver
         (void)signal(SIGALRM, alarmRx);
         read_SET();
     }
-    
-    
+
     /*Move this to LL close*/
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
     {
@@ -194,7 +261,7 @@ int llopen(LinkLayer connectionParameters)
 
     printf("Closing Connection!\n");
     close(fd);
-    
+
     /*-------------------*/
     return -1;
 }
@@ -206,11 +273,11 @@ int llwrite(const unsigned char *buf, int bufSize)
 {
     write(fd, buf, bufSize);
 
-    printf("[1] : %x \n",buf[0]);
-    printf("[2] : %x \n",buf[1]);
-    printf("[3] : %x \n",buf[2]);
-    printf("[4] : %x \n",buf[3]);
-    printf("[5] : %x \n",buf[4]);
+    printf("[1] : %x \n", buf[0]);
+    printf("[2] : %x \n", buf[1]);
+    printf("[3] : %x \n", buf[2]);
+    printf("[4] : %x \n", buf[3]);
+    printf("[5] : %x \n", buf[4]);
 
     return 0;
 }
