@@ -21,7 +21,6 @@ int compare_response(unsigned char* A,unsigned char* B,int size){
     return FALSE;
 }
 
-
 int read_UA(){
     unsigned char holder[5];
     llread(holder);
@@ -34,15 +33,59 @@ int read_UA(){
     return (compare_response(_UA,holder,sizeof(_UA)));
 }
 
-int read_SET(){
-    int x = 0;
+int next_State(unsigned char recieved,unsigned char expected, int next, int *current){
+    if(recieved == expected){
+        *current = next;
+        return TRUE;
+    }
+    return FALSE;
+}
+    /*int x = 0;
     unsigned char holder[5];
     while(x < 10){
         llread(holder);
         llwrite(_UA,5);
         x++;
+    }*/
+int read_SET(){
+    unsigned char buf[2];
+    int state = START;
+    int connected = FALSE;
+    while(state != STOP && connected == FALSE){
+        int bytes_read = read(fd, buf, 1);
+        unsigned char char_received = buf[0];
+        printf("char read: %x\n",buf[0]);
+        if(bytes_read != 0){
+            switch(state){
+                case START:
+                    if(!next_State(char_received,F,FLAG_RCV,&state))
+                        state = START;
+                    break;
+                case FLAG_RCV:
+                    if(!(next_State(char_received,A_W,A_RCV,&state) || next_State(char_received,F,FLAG_RCV,&state)))
+                        state = START;
+                    break;
+                case A_RCV:
+                    if(!(next_State(char_received,SET,C_RCV,&state) || next_State(char_received,F,FLAG_RCV,&state)))
+                        state = START;
+                    break;
+                case C_RCV:
+                    if(!(next_State(char_received,BCC1_SET,BCC_OK,&state) || next_State(char_received,F,FLAG_RCV,&state)))
+                        state = START;
+                    break;
+                case BCC_OK:
+                    if(!next_State(char_received,F,STOP,&state))
+                        state = START;
+                    else{
+                        connected = TRUE;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }      
     }
-    return TRUE;
+    return connected;
 }
 
 void alarmTx(int signal){
@@ -53,8 +96,6 @@ void alarmTx(int signal){
      
     if(read_UA() == TRUE){
         printf("UA received!\n");
-    
-
         connectionEnabled = TRUE;
     }else{
         printf("Connection Failed! Retrying connection.\n");
