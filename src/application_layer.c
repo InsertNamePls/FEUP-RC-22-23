@@ -36,9 +36,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     connectionParams.timeout = timeout;
 
     //Open Connection
+
+    /* Why dis not correct*/
     if(llopen(connectionParams) > 0){
-      perror("Connection Opening Error!\n");
+     // perror("Connection Opening Error!\n");
       return;
     }
+    /*see this later*/
 
 }

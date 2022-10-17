@@ -7,6 +7,69 @@
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
 void setupPorts(LinkLayer connectionParameters){
+
+}
+
+void closePorts(){
+    // Restore the old port settings
+   /* 
+    */
+}
+
+int compare_response(unsigned char* A,unsigned char* B,int size){
+     printf("2\n");
+    if (memcmp(A,B,size)==0) return TRUE;
+    return FALSE;
+}
+
+
+int read_UA(){
+    unsigned char holder[5];
+    llread(holder);
+     printf("1\n");
+    return (compare_response(_UA,holder,sizeof(_UA)));
+}
+
+int read_SET(){
+    int x = 0;
+    unsigned char holder[5];
+    while(x < 10){
+        llread(holder);
+        llwrite(_UA,5);
+        x++;
+    }
+    return TRUE;
+}
+
+void alarmTx(int signal){
+    alarmEnabled = FALSE;
+    alarmCount++;
+
+    llwrite(_SET,5);
+     
+   if(read_UA() == TRUE){
+        connectionEnabled = TRUE;
+    }else{
+        printf("Connection Failed! Retrying connection.\n");
+    }
+
+}
+
+void alarmRx(int signal){
+    
+}
+
+
+////////////////////////////////////////////////
+// LLOPEN
+////////////////////////////////////////////////
+int llopen(LinkLayer connectionParameters)
+{
+
+   // setupPorts(connectionParameters);
+
+    /* Move this to aux functions*/
+
     fd = open(connectionParameters.serialPort,O_RDWR | O_NOCTTY);
     if (fd < 0)
     {
@@ -31,7 +94,7 @@ void setupPorts(LinkLayer connectionParameters){
 
     newtio.c_lflag = 0;
     newtio.c_cc[VTIME] = 0; 
-    newtio.c_cc[VMIN] = 0; 
+    newtio.c_cc[VMIN] = 1; 
     tcflush(fd, TCIOFLUSH);
 
     // Set new port settings
@@ -40,56 +103,8 @@ void setupPorts(LinkLayer connectionParameters){
         perror("tcsetattr");
         exit(-1);
     }
-}
 
-void closePorts(){
-    // Restore the old port settings
-   /* if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
-    {
-        perror("tcsetattr");
-        exit(-1);
-    }
-
-    printf("Closing Connection!\n");
-    close(fd);
-    */
-}
-
-int read_UA(){
-    return FALSE;
-}
-
-int read_SET(){
-    return FALSE;
-}
-
-void alarmTx(int signal){
-    alarmEnabled = FALSE;
-    alarmCount++;
-
-   
-    llwrite(_SET,5);
-     
-   if(read_UA() == TRUE){
-        connectionEnabled = TRUE;
-    }else{
-        printf("Connection Failed! Retrying connection.\n");
-    }
-
-}
-
-void alarmRx(int signal){
-    
-}
-
-
-////////////////////////////////////////////////
-// LLOPEN
-////////////////////////////////////////////////
-int llopen(LinkLayer connectionParameters)
-{
-
-    setupPorts(connectionParameters);
+    /*-------------------*/
 
     if(connectionParameters.role == LlTx){ 
         // transmitter
@@ -120,8 +135,23 @@ int llopen(LinkLayer connectionParameters)
     }else{
         // receiver
         (void)signal(SIGALRM, alarmRx);
+        
+        read_SET();
     }
-    return 1;
+    
+    
+    /*Move this to LL close*/
+    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
+    {
+        perror("tcsetattr");
+        exit(-1);
+    }
+
+    printf("Closing Connection!\n");
+    close(fd);
+    
+    /*-------------------*/
+    return -1;
 }
 
 ////////////////////////////////////////////////
@@ -145,9 +175,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    // TODO
-
-    return 0;
+    return read(fd, packet, sizeof(packet));
 }
 
 ////////////////////////////////////////////////
