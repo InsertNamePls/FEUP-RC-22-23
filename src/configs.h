@@ -42,3 +42,5 @@ int fd;
 int alarmEnabled = FALSE;
 int connectionEnabled = FALSE;
 int alarmCount = 0;
+struct termios oldtio;
+struct termios newtio;

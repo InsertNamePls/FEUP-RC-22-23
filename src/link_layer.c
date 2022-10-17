@@ -1,7 +1,6 @@
 // Link layer protocol implementation
-
-#include "link_layer.h"
 #include "configs.h"
+#include "link_layer.h"
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
@@ -9,6 +8,37 @@
 /*Aux Functions*/
 void setupPorts(LinkLayer connectionParameters)
 {
+    fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY);
+    if (fd < 0)
+    {
+        perror(connectionParameters.serialPort);
+        exit(-1);
+    }
+
+    // Save current port settings
+    if (tcgetattr(fd, &oldtio) == -1)
+    {
+        perror("tcgetattr");
+        exit(-1);
+    }
+    // Clear struct for new port settings
+    memset(&newtio, 0, sizeof(newtio));
+
+    newtio.c_cflag = connectionParameters.baudRate | CS8 | CLOCAL | CREAD;
+    newtio.c_iflag = IGNPAR;
+    newtio.c_oflag = 0;
+
+    newtio.c_lflag = 0;
+    newtio.c_cc[VTIME] = 0;
+    newtio.c_cc[VMIN] = 1;
+    tcflush(fd, TCIOFLUSH);
+
+    // Set new port settings
+    if (tcsetattr(fd, TCSANOW, &newtio) == -1)
+    {
+        perror("tcsetattr");
+        exit(-1);
+    }
 }
 
 int next_State(unsigned char recieved, unsigned char expected, int next, int *current)
@@ -23,9 +53,15 @@ int next_State(unsigned char recieved, unsigned char expected, int next, int *cu
 
 void closePorts()
 {
-    // Restore the old port settings
-    /*
-     */
+    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
+    {
+        perror("tcsetattr");
+        exit(-1);
+    }
+
+    printf("[LOG] Communication Terminated.\n");
+
+    close(fd);
 }
 
 int compare_response(unsigned char *A, unsigned char *B, int size)
@@ -56,7 +92,7 @@ int read_UA()
         unsigned char buf[2];
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
-        printf("Char Read: %x\n", buf[0]);
+        // printf("Char Read: %x\n", buf[0]);
         /*------------------------------------------*/
         if (bytes_read != 0)
         {
@@ -86,7 +122,7 @@ int read_UA()
                 else
                 {
                     connected = TRUE;
-                    printf("UA received, I shall write you data\n");
+                    printf("[LOG] Reader Connected.\n");
                 }
                 break;
             default:
@@ -107,7 +143,7 @@ int read_SET()
         /* mudar isto para chamadas a funcao LL open*/
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
-        printf("char read: %x\n", buf[0]);
+        // printf("char read: %x\n", buf[0]);
         /*------------------------------------------*/
         if (bytes_read != 0)
         {
@@ -134,7 +170,7 @@ int read_SET()
                     state = START;
                 else
                 {
-                    printf("Connected with writter!\n");
+                    printf("[LOG] Writter Connected.\n");
                     connected = TRUE;
                     /*Mandar SET se connected prov melhorar isto com alguma funcao or smth*/
                     llwrite(_UA, 5);
@@ -152,22 +188,18 @@ void alarmTx(int signal)
 {
     alarmEnabled = FALSE;
     alarmCount++;
-
+    printf("[LOG] Initializing Communication.\n");
     llwrite(_SET, 5);
 
     if (read_UA() == TRUE)
     {
-        printf("UA received!\n");
         connectionEnabled = TRUE;
     }
     else
     {
-        printf("Connection Failed! Retrying connection.\n");
+        printf("[ERROR] Connection Failed.\n");
+        printf("[LOG] Retrying connection.\n");
     }
-}
-
-void alarmRx(int signal)
-{
 }
 
 ////////////////////////////////////////////////
@@ -175,50 +207,10 @@ void alarmRx(int signal)
 ////////////////////////////////////////////////
 int llopen(LinkLayer connectionParameters)
 {
-
-    // setupPorts(connectionParameters);
-
-    /* Move this to aux functions*/
-
-    fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY);
-    if (fd < 0)
-    {
-        perror(connectionParameters.serialPort);
-        exit(-1);
-    }
-    struct termios oldtio;
-    struct termios newtio;
-
-    // Save current port settings
-    if (tcgetattr(fd, &oldtio) == -1)
-    {
-        perror("tcgetattr");
-        exit(-1);
-    }
-    // Clear struct for new port settings
-    memset(&newtio, 0, sizeof(newtio));
-
-    newtio.c_cflag = connectionParameters.baudRate | CS8 | CLOCAL | CREAD;
-    newtio.c_iflag = IGNPAR;
-    newtio.c_oflag = 0;
-
-    newtio.c_lflag = 0;
-    newtio.c_cc[VTIME] = 0;
-    newtio.c_cc[VMIN] = 1;
-    tcflush(fd, TCIOFLUSH);
-
-    // Set new port settings
-    if (tcsetattr(fd, TCSANOW, &newtio) == -1)
-    {
-        perror("tcsetattr");
-        exit(-1);
-    }
-
-    /*-------------------*/
+    setupPorts(connectionParameters);
 
     if (connectionParameters.role == LlTx)
     {
-        // transmitter
         (void)signal(SIGALRM, alarmTx);
 
         while (alarmCount < connectionParameters.nRetransmissions && connectionEnabled == FALSE)
@@ -227,7 +219,7 @@ int llopen(LinkLayer connectionParameters)
             {
                 alarm(connectionParameters.timeout);
                 alarmEnabled = TRUE;
-                printf("Sending SET [%d]!\n", alarmCount);
+                // printf("Sending SET [%d]!\n", alarmCount);
             }
         }
 
@@ -235,13 +227,13 @@ int llopen(LinkLayer connectionParameters)
         {
             alarmEnabled = FALSE;
             alarmCount = 0;
-            printf("Connection Established!\n");
-            printf("Waiting for more data.\n");
+
+            printf("[LOG] Waiting for data.\n");
         }
         else
         {
-            printf("Connection failed.\n");
-            printf("Exiting.\n");
+            printf("[LOG] Connection failed.\n");
+            printf("[LOG] Exiting.\n");
             exit(-1);
         }
     }
@@ -252,17 +244,8 @@ int llopen(LinkLayer connectionParameters)
         read_SET();
     }
 
-    /*Move this to LL close*/
-    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
-    {
-        perror("tcsetattr");
-        exit(-1);
-    }
-
-    printf("Closing Connection!\n");
-    close(fd);
-
-    /*-------------------*/
+    // remove this latter <--------------------------------------------------------------------
+    closePorts();
     return -1;
 }
 
@@ -273,11 +256,12 @@ int llwrite(const unsigned char *buf, int bufSize)
 {
     write(fd, buf, bufSize);
 
-    printf("[1] : %x \n", buf[0]);
-    printf("[2] : %x \n", buf[1]);
-    printf("[3] : %x \n", buf[2]);
-    printf("[4] : %x \n", buf[3]);
-    printf("[5] : %x \n", buf[4]);
+    /* printf("[1] : %x \n", buf[0]);
+     printf("[2] : %x \n", buf[1]);
+     printf("[3] : %x \n", buf[2]);
+     printf("[4] : %x \n", buf[3]);
+     printf("[5] : %x \n", buf[4]);
+     */
 
     return 0;
 }
