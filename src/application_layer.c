@@ -189,7 +189,6 @@ FILE *getFile(const char *filename)
 
 void printArray(unsigned int *array)
 {
-  printf("Size of array : %ld \n", sizeof(array));
   for (int i = 0; i < sizeof(array); i++)
   {
     printf("%d", array[i]);
@@ -200,33 +199,41 @@ void printArray(unsigned int *array)
 void apWrite(FILE *pengu)
 {
   unsigned char buffer[2];
-  unsigned int packet[11];
+  unsigned int dataSection[11];
+  unsigned int packet[32];
   size_t bytesRead = 0;
-  int count = 0;
+
+  packet[0] = 0; // control field
+  packet[1] = 1; // sequence number
+  packet[2] = 2; // number of octects
+
+  int index = 2;
   while ((bytesRead = fread(buffer, 1, sizeof(buffer), pengu)) > 0)
   {
-    if (count == 10)
+    if (index < sizeof(dataSection)-1)
     {
-     // llwrite(enconde(packet)); < --------------- Goal
-
-     // printArray(packet);
-      for (int i = 0; i < sizeof(packet); i++)
-      {
-        printf("%d", packet[i]);
-      }
-      printf("\n\n\n\n");
-      count = 0;
+      dataSection[index] = buffer[0];
+      index++;
     }
     else
     {
-      packet[count] = buffer[0];
-      count++;
+      packet[0] = 0; // control field
+      packet[1] = 1; // sequence number
+      packet[2] = 2; // number of octects
+      packet[sizeof(dataSection)] = buffer[0];
+      printArray(packet);
+
+      //need byte stuffing
+     // llwrite(packet);
+      index = 2;
+      
     }
   }
   fclose(pengu);
 }
 
-unsigned char* enconde(){
+unsigned char *enconde()
+{
   // add header and control variables
   // byte stuff and ready to send
   return NULL;
