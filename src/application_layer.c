@@ -86,7 +86,7 @@ void apWrite(FILE *pengu)
       printArray(packet);
 
       // need byte stuffing
-      llwrite(packet,sizeof(packet));
+      llwrite(packet, sizeof(packet));
       index = 2;
     }
   }
@@ -121,19 +121,20 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   {
     unsigned char buf[32];
     printf("[LOG] Reader Ready.\n");
-    for (int i = 0; i < 20;i++){
+    for (int i = 0; i < 20; i++)
+    {
       llread(buf);
       printf("[PACKET] ");
-      for (int j = 0; j < sizeof(buf);j++){
-        printf("%x ",buf[j]);
+      for (int j = 0; j < sizeof(buf); j++)
+      {
+        printf("%x ", buf[j]);
 
         /* note to self:
-        Something is going, a lot of 0's might be line noise, might be something else, 
+        Something is going, a lot of 0's might be line noise, might be something else,
         maybe with F flag verification will fix it*/
       }
       printf("\n");
     }
-    
   }
 
   /*see this later*/
@@ -148,7 +149,5 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
   */
 
- llclose(0);
-
-
+  llclose(0);
 }

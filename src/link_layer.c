@@ -173,7 +173,7 @@ int read_SET()
                     printf("[LOG] Writter Connected.\n");
                     connected = TRUE;
                     /*Mandar SET se connected prov melhorar isto com alguma funcao or smth*/
-                    write(fd,_UA,5);
+                    write(fd, _UA, 5);
                 }
                 break;
             default:
@@ -255,16 +255,15 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
-    unsigned char finalPacket[bufSize+6];
+    unsigned char finalPacket[bufSize + 6];
     finalPacket[0] = F;
     finalPacket[1] = A_W;
     finalPacket[2] = 3; // NEED TO SEE C CALCULATE THIS
     finalPacket[3] = finalPacket[1] ^ finalPacket[2];
-    for (int i = 4; i < bufSize-2; i++ )
-    finalPacket[i] = buf[i -4];
-    finalPacket[bufSize-5] = 9; // NEED TO SEE BBC2 CALCULATE THIS
-    finalPacket[bufSize-4] = F;
-
+    for (int i = 4; i < bufSize - 2; i++)
+        finalPacket[i] = buf[i - 4];
+    finalPacket[bufSize - 5] = 9; // NEED TO SEE BBC2 CALCULATE THIS
+    finalPacket[bufSize - 4] = F;
 
     write(fd, buf, bufSize);
 
