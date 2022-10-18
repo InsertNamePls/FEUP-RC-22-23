@@ -265,7 +265,7 @@ int llwrite(const unsigned char *buf, int bufSize)
     finalPacket[bufSize - 5] = 9; // NEED TO SEE BBC2 CALCULATE THIS
     finalPacket[bufSize - 4] = F;
 
-    write(fd, buf, bufSize);
+    write(fd, finalPacket, bufSize+6);
 
     // Sempre que escreve tem que ter um alarm ate receber uma RR correta
 
