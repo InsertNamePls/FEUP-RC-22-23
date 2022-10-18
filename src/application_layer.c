@@ -21,7 +21,7 @@ LinkLayerRole getRole(const char *role)
     return LlRx;
   else
   {
-    printf("Invalid Role!\n");
+    printf("[ERROR] Invalid Role!\n");
 
     return (LinkLayerRole)NULL;
   }
@@ -184,11 +184,22 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
   /* Why dis not correct*/
-  if (llopen(getParams(serialPort,role,baudRate,nTries,timeout)) < 0)
+
+  LinkLayer cons = getParams(serialPort,role,baudRate,nTries,timeout);
+
+  if (llopen(cons) < 0)
   {
     perror("Connection Opening Error!\n");
     return;
   }
+
+
+  if(cons.role == LlTx){
+    printf("Ready to write data\n");
+  }else if (cons.role == LlRx){
+      printf("Ready to read data\n");
+  }
+
 
   /*see this later*/
 
