@@ -244,10 +244,9 @@ int llopen(LinkLayer connectionParameters)
         connectionEnabled = read_SET();
     }
 
-    // remove this latter <--------------------------------------------------------------------
-    closePorts();
-    if (connectionEnabled == TRUE) return 1;
-    printf("%d \n",connectionEnabled);
+    if (connectionEnabled == TRUE)
+        return 1;
+    printf("%d \n", connectionEnabled);
     return -1;
 }
 
@@ -258,7 +257,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 {
     write(fd, buf, bufSize);
 
-    // Sempre que escreve tem que ter um alarm ate receber uma RR correta 
+    // Sempre que escreve tem que ter um alarm ate receber uma RR correta
 
     /* printf("[1] : %x \n", buf[0]);
      printf("[2] : %x \n", buf[1]);
