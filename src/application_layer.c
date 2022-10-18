@@ -207,6 +207,8 @@ void apWrite(FILE *pengu)
   {
     if (count == 10)
     {
+     // llwrite(enconde(packet)); < --------------- Goal
+
      // printArray(packet);
       for (int i = 0; i < sizeof(packet); i++)
       {
@@ -222,6 +224,12 @@ void apWrite(FILE *pengu)
     }
   }
   fclose(pengu);
+}
+
+unsigned char* enconde(){
+  // add header and control variables
+  // byte stuff and ready to send
+  return NULL;
 }
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
