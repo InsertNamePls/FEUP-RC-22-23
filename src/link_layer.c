@@ -88,7 +88,7 @@ int read_UA()
     int connected = FALSE;
     while (state != STOP && connected == FALSE)
     {
-        /* mudar isto para chamadas a funcao LL open*/
+        /* mudar isto para chamadas a funcao LL read*/
         unsigned char buf[2];
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
@@ -240,12 +240,14 @@ int llopen(LinkLayer connectionParameters)
     else
     {
         // receiver
-        (void)signal(SIGALRM, alarmRx);
-        read_SET();
+        //(void)signal(SIGALRM, alarmRx);
+        connectionEnabled = read_SET();
     }
 
     // remove this latter <--------------------------------------------------------------------
     closePorts();
+    if (connectionEnabled == TRUE) return 1;
+    printf("%d \n",connectionEnabled);
     return -1;
 }
 
@@ -255,6 +257,8 @@ int llopen(LinkLayer connectionParameters)
 int llwrite(const unsigned char *buf, int bufSize)
 {
     write(fd, buf, bufSize);
+
+    // Sempre que escreve tem que ter um alarm ate receber uma RR correta 
 
     /* printf("[1] : %x \n", buf[0]);
      printf("[2] : %x \n", buf[1]);
