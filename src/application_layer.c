@@ -180,20 +180,46 @@ LinkLayer getParams(const char *serialPort, const char *role, int baudRate,
   return connectionParams;
 }
 
-FILE* getFile(const char *filename)
+FILE *getFile(const char *filename)
 {
   FILE *file = NULL;
   file = fopen(filename, "rb");
   return file;
 }
 
-void apWrite(FILE* pengu)
+void printArray(unsigned int *array)
+{
+  printf("Size of array : %ld \n", sizeof(array));
+  for (int i = 0; i < sizeof(array); i++)
+  {
+    printf("%d", array[i]);
+  }
+  printf("\n");
+}
+
+void apWrite(FILE *pengu)
 {
   unsigned char buffer[2];
+  unsigned int packet[11];
   size_t bytesRead = 0;
+  int count = 0;
   while ((bytesRead = fread(buffer, 1, sizeof(buffer), pengu)) > 0)
   {
-    printf("%d", buffer[0]);
+    if (count == 10)
+    {
+     // printArray(packet);
+      for (int i = 0; i < sizeof(packet); i++)
+      {
+        printf("%d", packet[i]);
+      }
+      printf("\n\n\n\n");
+      count = 0;
+    }
+    else
+    {
+      packet[count] = buffer[0];
+      count++;
+    }
   }
   fclose(pengu);
 }
