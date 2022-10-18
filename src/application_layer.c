@@ -180,26 +180,50 @@ LinkLayer getParams(const char *serialPort, const char *role, int baudRate,
   return connectionParams;
 }
 
+FILE* getFile(const char *filename)
+{
+  FILE *file = NULL;
+  file = fopen(filename, "rb");
+  return file;
+}
+
+void apWrite(FILE* pengu)
+{
+  unsigned char buffer[2];
+  size_t bytesRead = 0;
+  while ((bytesRead = fread(buffer, 1, sizeof(buffer), pengu)) > 0)
+  {
+    printf("%d", buffer[0]);
+  }
+  fclose(pengu);
+}
+
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
-  /* Why dis not correct*/
-
-  LinkLayer cons = getParams(serialPort,role,baudRate,nTries,timeout);
-
+  LinkLayer cons = getParams(serialPort, role, baudRate, nTries, timeout);
   if (llopen(cons) < 0)
   {
     perror("Connection Opening Error!\n");
     return;
   }
 
+  if (cons.role == LlTx)
+  {
+    FILE *pengu = getFile(filename);
+    if (pengu != NULL)
+      apWrite(pengu);
 
-  if(cons.role == LlTx){
-    printf("Ready to write data\n");
-  }else if (cons.role == LlRx){
-      printf("Ready to read data\n");
+    /*
+    Read file data
+    process file data
+    send file data to reader via LLwrite
+    */
   }
-
+  else if (cons.role == LlRx)
+  {
+    printf("Ready to read data\n");
+  }
 
   /*see this later*/
 
