@@ -9,7 +9,6 @@
 #include <signal.h>
 #include <string.h>
 
-
 /* Flag Configs*/
 #define F 0x7E
 #define A_W 0x03
@@ -18,8 +17,8 @@
 #define DISC 0x0B
 #define UA 0x07
 
-#define BCC1_SET A_W^SET
-#define BCC1_UA A_R^UA
+#define BCC1_SET A_W ^ SET
+#define BCC1_UA A_R ^ UA
 
 /* SET State Machine Configuration*/
 #define START 1
@@ -30,8 +29,8 @@
 #define STOP 6
 
 /*Generic Frames*/
-unsigned char _SET[5] = {F,A_W,SET,BCC1_SET,F};
-unsigned char _UA[5] = {F,A_R,UA,BCC1_UA,F};
+unsigned char _SET[5] = {F, A_W, SET, BCC1_SET, F};
+unsigned char _UA[5] = {F, A_R, UA, BCC1_UA, F};
 
 /*Global Settings*/
 #define FALSE 0

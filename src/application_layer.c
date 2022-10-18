@@ -49,9 +49,11 @@ FILE *getFile(const char *filename)
 
 void printArray(unsigned int *array)
 {
-  for (int i = 0; i < sizeof(array); i++)
+  int i = 0;
+  printf("[PACKET]");
+  for (i = 0; i < sizeof(array); i++)
   {
-    printf("%d", array[i]);
+    printf(" %d", array[i]);
   }
   printf("\n");
 }
@@ -84,7 +86,7 @@ void apWrite(FILE *pengu)
       printArray(packet);
 
       // need byte stuffing
-      // llwrite(packet);
+      llwrite(packet,sizeof(packet));
       index = 2;
     }
   }
@@ -94,10 +96,12 @@ void apWrite(FILE *pengu)
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
+
+  printf("[PROTOCOL START]\n");
   LinkLayer cons = getParams(serialPort, role, baudRate, nTries, timeout);
   if (llopen(cons) < 0)
   {
-    perror("Connection Opening Error!\n");
+    perror("[ERROR] Connection Opening Error!\n");
     return;
   }
 
@@ -115,7 +119,21 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   }
   else if (cons.role == LlRx)
   {
-    printf("Ready to read data\n");
+    unsigned char buf[32];
+    printf("[LOG] Reader Ready.\n");
+    for (int i = 0; i < 20;i++){
+      llread(buf);
+      printf("[PACKET] ");
+      for (int j = 0; j < sizeof(buf);j++){
+        printf("%x ",buf[j]);
+
+        /* note to self:
+        Something is going, a lot of 0's might be line noise, might be something else, 
+        maybe with F flag verification will fix it*/
+      }
+      printf("\n");
+    }
+    
   }
 
   /*see this later*/
@@ -130,7 +148,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
   */
 
- llclose();
+ llclose(0);
 
- 
+
 }
