@@ -272,8 +272,6 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-
-    printf("ll read: %d \n",sizeof(packet));
     return read(fd, packet, PAYLOAD);
 }
 
