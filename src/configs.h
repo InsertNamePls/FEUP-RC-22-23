@@ -35,7 +35,7 @@ unsigned char _UA[5] = {F, A_R, UA, BCC1_UA, F};
 /*Global Settings*/
 #define FALSE 0
 #define TRUE 1
-
+#define PAYLOAD 600
 
 /*Global Variables*/
 int fd;

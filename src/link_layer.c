@@ -238,7 +238,10 @@ int llopen(LinkLayer connectionParameters)
     printf("%d \n", connectionEnabled);
     return -1;
 }
+void llprintArray(unsigned char *array)
+{
 
+}
 ////////////////////////////////////////////////
 // LLWRITE
 ////////////////////////////////////////////////
@@ -249,21 +252,16 @@ int llwrite(const unsigned char *buf, int bufSize)
     finalPacket[1] = A_W;
     finalPacket[2] = 3; // NEED TO SEE C CALCULATE THIS
     finalPacket[3] = finalPacket[1] ^ finalPacket[2];
-    for (int i = 4; i < bufSize - 2; i++)
-        finalPacket[i] = buf[i - 4];
+
+    memcpy(finalPacket + 4, buf, bufSize + 6);
     finalPacket[bufSize - 5] = 9; // NEED TO SEE BBC2 CALCULATE THIS
     finalPacket[bufSize - 4] = F;
 
-    write(fd, finalPacket, bufSize+6);
-
-    // Sempre que escreve tem que ter um alarm ate receber uma RR correta
-
-    /* printf("[1] : %x \n", buf[0]);
-     printf("[2] : %x \n", buf[1]);
-     printf("[3] : %x \n", buf[2]);
-     printf("[4] : %x \n", buf[3]);
-     printf("[5] : %x \n", buf[4]);
-     */
+    printf("[PACKET]");
+    for (int i = 0; i < sizeof(finalPacket); i++)
+        printf("%x", finalPacket[i]);
+    printf("\n");
+    write(fd, finalPacket, bufSize + 6);
 
     return 0;
 }
@@ -273,6 +271,8 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
+
+    printf("ll read: %d \n",sizeof(packet));
     return read(fd, packet, sizeof(packet));
 }
 
