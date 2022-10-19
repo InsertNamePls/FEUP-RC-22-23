@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "configs.h": "c",
+        "application_layer.h": "c"
+    }
+}

@@ -239,22 +239,56 @@ int llopen(LinkLayer connectionParameters)
     return -1;
 }
 
+char calculateBCC2(unsigned char* packet, int packetsize){
+    unsigned char bcc2 = 0x00;
+    for(int i = 0; i < packetsize;i++){
+        bcc2 = bcc2 ^ packet[i];
+    }
+    return bcc2;
+}
+
 ////////////////////////////////////////////////
 // LLWRITE
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
+    int tempSize = bufSize * 2;
+    unsigned char holder[tempSize];
 
-    int finalpacketSize = bufSize + 6;
+    int finalpacketSize = 0;
+    for (int i = 0; i < bufSize; i++)
+    {
+        if (buf[i] == F)
+        {
+            holder[i] = S1;
+            holder[i + 1] = S2;
+            finalpacketSize += 2;
+            i++;
+        }
+        else if (buf[i] == S1)
+        {
+            holder[i] = S1;
+            holder[i + 1] = S3;
+            finalpacketSize += 2;
+            i++;
+        }
+        else
+        {
+            holder[i] = 5;
+            finalpacketSize++;
+        }
+    }
+
+    finalpacketSize += 6;
     unsigned char finalPacket[finalpacketSize];
     finalPacket[0] = F;
     finalPacket[1] = A_W;
-    finalPacket[2] = 3; // NEED TO SEE C CALCULATE THIS
+    finalPacket[2] = 9; // NEED TO SEE C CALCULATE THIS
     finalPacket[3] = finalPacket[1] ^ finalPacket[2];
 
-    memcpy(finalPacket + 4, buf, finalpacketSize);
+    memcpy(finalPacket + 4, holder, finalpacketSize - 2);
 
-    finalPacket[bufSize + 4] = 9; // NEED TO SEE BBC2 CALCULATE THIS
+    finalPacket[bufSize + 4] = calculateBCC2(finalPacket,finalpacketSize); // NEED TO SEE BBC2 CALCULATE THIS
     finalPacket[bufSize + 5] = F;
 
     printf("[PACKET]");
@@ -270,7 +304,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    return read(fd, packet, PAYLOAD+9);
+    return read(fd, packet, PAYLOAD + 9);
 }
 
 ////////////////////////////////////////////////

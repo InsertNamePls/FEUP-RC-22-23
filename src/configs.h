@@ -17,6 +17,10 @@
 #define DISC 0x0B
 #define UA 0x07
 
+#define S1 0x7D
+#define S2 0x5E
+#define S3 0x5D
+
 #define BCC1_SET A_W ^ SET
 #define BCC1_UA A_R ^ UA
 

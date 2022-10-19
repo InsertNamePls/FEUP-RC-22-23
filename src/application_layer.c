@@ -50,10 +50,10 @@ FILE *getFile(const char *filename)
 
 void printArray(unsigned char *array)
 {
-  printf("[PACKET]");
+ /*printf("[PACKET]");
   for (int i = 0; i < PAYLOAD; i++)
     printf("%x", array[i]);
-  printf("\n");
+  printf("\n");*/ 
 }
 
 void apWrite(FILE *pengu)
@@ -69,7 +69,7 @@ void apWrite(FILE *pengu)
     memcpy(packet + 3, buffer,sizeof(packet));
 
     // need byte stuffing
-    int bytesWritten = llwrite(packet, sizeof(packet));
+    llwrite(packet, sizeof(packet));
   }
 
   fclose(pengu);
@@ -101,12 +101,10 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     for (int i = 0; i < 2; i++)
     {
       int x = llread(buf);
-
-   
-      printf("[PACKET] ");
+      //printf("[PACKET] ");
       for (int j = 0; j < x; j++)
       {
-        printf("%x", buf[j]);
+      //  printf("%x", buf[j]);
       }
       printf("\n");
     }
