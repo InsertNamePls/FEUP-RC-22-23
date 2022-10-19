@@ -69,7 +69,7 @@ void apWrite(FILE *pengu)
     memcpy(packet + 3, buffer,sizeof(packet));
 
     // need byte stuffing
-    llwrite(packet, sizeof(packet));
+    int bytesWritten = llwrite(packet, sizeof(packet));
   }
 
   fclose(pengu);
@@ -102,11 +102,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     {
       int x = llread(buf);
 
-      printf("%d\n",x);
+   
       printf("[PACKET] ");
       for (int j = 0; j < x; j++)
       {
-        printf("%x ", buf[j]);
+        printf("%x", buf[j]);
       }
       printf("\n");
     }

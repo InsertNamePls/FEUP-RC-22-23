@@ -30,7 +30,7 @@ void setupPorts(LinkLayer connectionParameters)
 
     newtio.c_lflag = 0;
     newtio.c_cc[VTIME] = 0;
-    newtio.c_cc[VMIN] = 0;
+    newtio.c_cc[VMIN] = 1;
     tcflush(fd, TCIOFLUSH);
 
     // Set new port settings
@@ -262,9 +262,7 @@ int llwrite(const unsigned char *buf, int bufSize)
         printf("%x", finalPacket[i]);
     printf("\n");
 
-    write(fd, finalPacket, finalpacketSize);
-
-    return 0;
+    return write(fd, finalPacket, finalpacketSize);
 }
 
 ////////////////////////////////////////////////
@@ -272,7 +270,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    return read(fd, packet, PAYLOAD);
+    return read(fd, packet, PAYLOAD+9);
 }
 
 ////////////////////////////////////////////////
