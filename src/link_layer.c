@@ -71,17 +71,6 @@ int compare_response(unsigned char *A, unsigned char *B, int size)
     return FALSE;
 }
 
-/*unsigned char holder[5];
-    llread(holder);
-    printf("Printing read data:\n");
-    printf("[1] : %x \n",holder[0]);
-    printf("[2] : %x \n",holder[1]);
-    printf("[3] : %x \n",holder[2]);
-    printf("[4] : %x \n",holder[3]);
-    printf("[5] : %x \n",holder[4]);
-    return (compare_response(_UA,holder,sizeof(_UA)));
-*/
-
 int read_UA()
 {
     int state = START;
@@ -284,6 +273,8 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
+
+    printf("size of :%d \n",sizeof(packet));
     return read(fd, packet, sizeof(packet));
 }
 

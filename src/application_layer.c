@@ -110,12 +110,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     FILE *pengu = getFile(filename);
     if (pengu != NULL)
       apWrite(pengu);
-
-    /*
-    Read file data
-    process file data
-    send file data to reader via LLwrite
-    */
   }
   else if (cons.role == LlRx)
   {
@@ -136,18 +130,5 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
       printf("\n");
     }
   }
-
-  /*see this later*/
-
-  /*
-
-  1 - Connection X
-  2 - Open File X
-  3 - Send Data X
-  4 - Close Connection
-
-
-  */
-
   llclose(0);
 }
