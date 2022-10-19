@@ -274,7 +274,7 @@ int llwrite(const unsigned char *buf, int bufSize)
         }
         else
         {
-            holder[i] = 5;
+            holder[i] = buf[i];
             finalpacketSize++;
         }
     }
@@ -288,7 +288,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 
     memcpy(finalPacket + 4, holder, finalpacketSize - 2);
 
-    finalPacket[bufSize + 4] = calculateBCC2(finalPacket,finalpacketSize); // NEED TO SEE BBC2 CALCULATE THIS
+    finalPacket[bufSize + 4] = calculateBCC2(finalPacket,finalpacketSize); 
     finalPacket[bufSize + 5] = F;
 
     printf("[PACKET]");
