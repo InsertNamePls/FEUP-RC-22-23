@@ -30,7 +30,7 @@ void setupPorts(LinkLayer connectionParameters)
 
     newtio.c_lflag = 0;
     newtio.c_cc[VTIME] = 0;
-    newtio.c_cc[VMIN] = 1;
+    newtio.c_cc[VMIN] = 0;
     tcflush(fd, TCIOFLUSH);
 
     // Set new port settings
@@ -238,30 +238,31 @@ int llopen(LinkLayer connectionParameters)
     printf("%d \n", connectionEnabled);
     return -1;
 }
-void llprintArray(unsigned char *array)
-{
 
-}
 ////////////////////////////////////////////////
 // LLWRITE
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
-    unsigned char finalPacket[bufSize + 6];
+
+    int finalpacketSize = bufSize + 6;
+    unsigned char finalPacket[finalpacketSize];
     finalPacket[0] = F;
     finalPacket[1] = A_W;
     finalPacket[2] = 3; // NEED TO SEE C CALCULATE THIS
     finalPacket[3] = finalPacket[1] ^ finalPacket[2];
 
-    memcpy(finalPacket + 4, buf, bufSize + 6);
-    finalPacket[bufSize - 5] = 9; // NEED TO SEE BBC2 CALCULATE THIS
-    finalPacket[bufSize - 4] = F;
+    memcpy(finalPacket + 4, buf, finalpacketSize);
+
+    finalPacket[bufSize + 4] = 9; // NEED TO SEE BBC2 CALCULATE THIS
+    finalPacket[bufSize + 5] = F;
 
     printf("[PACKET]");
-    for (int i = 0; i < sizeof(finalPacket); i++)
+    for (int i = 0; i < finalpacketSize; i++)
         printf("%x", finalPacket[i]);
     printf("\n");
-    write(fd, finalPacket, bufSize + 6);
+
+    write(fd, finalPacket, finalpacketSize);
 
     return 0;
 }
@@ -273,7 +274,7 @@ int llread(unsigned char *packet)
 {
 
     printf("ll read: %d \n",sizeof(packet));
-    return read(fd, packet, sizeof(packet));
+    return read(fd, packet, PAYLOAD);
 }
 
 ////////////////////////////////////////////////

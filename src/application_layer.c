@@ -59,15 +59,15 @@ void printArray(unsigned char *array)
 void apWrite(FILE *pengu)
 {
   unsigned char buffer[PAYLOAD];
-  unsigned char packet[PAYLOAD + 4];
+  unsigned char packet[PAYLOAD + 3];
   int bytesRead = 0;
   while ((bytesRead = fread(buffer, 1, PAYLOAD, pengu)) > 0)
   {
     packet[0] = 0; // control field
     packet[1] = 1; // sequence number
     packet[2] = 2; // number of octects
-    memcpy(packet + 3, buffer, PAYLOAD + 3);
-    printArray(packet);
+    memcpy(packet + 3, buffer,sizeof(packet));
+
     // need byte stuffing
     llwrite(packet, sizeof(packet));
   }
