@@ -46,50 +46,32 @@ FILE *getFile(const char *filename)
   file = fopen(filename, "rb");
   return file;
 }
+#define PAYLOAD 600
 
-void printArray(unsigned int *array)
+void printArray(unsigned char *array)
 {
-  int i = 0;
   printf("[PACKET]");
-  for (i = 0; i < sizeof(array); i++)
-  {
-    printf(" %d", array[i]);
-  }
+  for (int i = 0; i < PAYLOAD; i++)
+    printf("%x", array[i]);
   printf("\n");
 }
 
 void apWrite(FILE *pengu)
 {
-  unsigned char buffer[2];
-  unsigned int dataSection[11];
-  unsigned int packet[32];
-  size_t bytesRead = 0;
-
-  packet[0] = 0; // control field
-  packet[1] = 1; // sequence number
-  packet[2] = 2; // number of octects
-
-  int index = 2;
-  while ((bytesRead = fread(buffer, 1, sizeof(buffer), pengu)) > 0)
+  unsigned char buffer[PAYLOAD];
+  unsigned char packet[PAYLOAD + 4];
+  int bytesRead = 0;
+  while ((bytesRead = fread(buffer, 1, PAYLOAD, pengu)) > 0)
   {
-    if (index < sizeof(dataSection) - 1)
-    {
-      dataSection[index] = buffer[0];
-      index++;
-    }
-    else
-    {
-      packet[0] = 0; // control field
-      packet[1] = 1; // sequence number
-      packet[2] = 2; // number of octects
-      packet[sizeof(dataSection)] = buffer[0];
-      printArray(packet);
-
-      // need byte stuffing
-      llwrite(packet, sizeof(packet));
-      index = 2;
-    }
+    packet[0] = 0; // control field
+    packet[1] = 1; // sequence number
+    packet[2] = 2; // number of octects
+    memcpy(packet + 3, buffer, PAYLOAD + 3);
+    printArray(packet);
+    // need byte stuffing
+    llwrite(packet, sizeof(packet));
   }
+
   fclose(pengu);
 }
 
@@ -113,19 +95,16 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   }
   else if (cons.role == LlRx)
   {
-    unsigned char buf[32];
     printf("[LOG] Reader Ready.\n");
-    for (int i = 0; i < 20; i++)
+    unsigned char buf[PAYLOAD + 9 ];
+  
+    for (int i = 0; i < 2; i++)
     {
       llread(buf);
       printf("[PACKET] ");
       for (int j = 0; j < sizeof(buf); j++)
       {
         printf("%x ", buf[j]);
-
-        /* note to self:
-        Something is going, a lot of 0's might be line noise, might be something else,
-        maybe with F flag verification will fix it*/
       }
       printf("\n");
     }
