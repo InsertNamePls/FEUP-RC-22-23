@@ -256,30 +256,27 @@ char calculateBCC2(unsigned char* packet, int packetsize){
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
-    
-    int newDataSize = 0;
 
     unsigned char auxBuffer[bufSize*2];
     int auxBufferIndex=0;
     char bcc2 = calculateBCC2(buf,bufSize);
     for (int i = 0; i<bufSize;i++){
-        if (buf[i] == 0x7e){
+        if (buf[i] == F){ 
+           auxBuffer[auxBufferIndex] = S1;
            auxBufferIndex++;
-           // printf("Got a FLAG\n");
+           auxBuffer[auxBufferIndex] = S2;
         }else if (buf[i] == S1){
-           // printf("Got a S1\n");
+            auxBuffer[auxBufferIndex] = S1;
+            auxBufferIndex++;
+            auxBuffer[auxBufferIndex] = S3;
             auxBufferIndex++;
         }else{
             auxBuffer[auxBufferIndex] = buf[i];
-            printf("%x",buf[i]);
         }
         auxBufferIndex++;
     }
-    printf("\n");
 
-
-
-    int finalpacketSize = newDataSize + 6;
+    int finalpacketSize = auxBufferIndex + 6;
     unsigned char finalPacket[finalpacketSize];
 
     finalPacket[0] = F;
@@ -287,16 +284,14 @@ int llwrite(const unsigned char *buf, int bufSize)
     finalPacket[2] = 0x09; // NEED TO SEE C CALCULATE THIS
     finalPacket[3] = finalPacket[1] ^ finalPacket[2];
 
-    //memcpy(finalPacket + 4, holder, finalpacketSize - 2);
+    memcpy(finalPacket + 4, auxBuffer, auxBufferIndex);
     
-
-  
     finalPacket[finalpacketSize -2] = bcc2; // need to stuff bcc2;
     finalPacket[finalpacketSize -1] = F;
     
     printf("[PACKET]");
     for (int i = 0; i < finalpacketSize; i++)
-        printf("%x", finalPacket[i]);
+        printf("%x ", finalPacket[i]);
     printf("\n");
 
     return write(fd, finalPacket, finalpacketSize);
