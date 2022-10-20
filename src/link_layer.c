@@ -8,7 +8,7 @@
 /*Aux Functions*/
 void setupPorts(LinkLayer connectionParameters)
 {
-    fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY);
+    fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd < 0)
     {
         perror(connectionParameters.serialPort);
@@ -29,7 +29,7 @@ void setupPorts(LinkLayer connectionParameters)
     newtio.c_oflag = 0;
 
     newtio.c_lflag = 0;
-    newtio.c_cc[VTIME] = 20;
+    newtio.c_cc[VTIME] = 0;
     newtio.c_cc[VMIN] = 0;
     tcflush(fd, TCIOFLUSH);
 
@@ -75,14 +75,12 @@ int read_UA()
 {
     int state = START;
     int connected = FALSE;
-    // Gets stuck in here if there is no UA and doesn't have a timeout 
     while (state != STOP && connected == FALSE)
     {
         /* mudar isto para chamadas a funcao LL read*/
         unsigned char buf[2];
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
-        //printf("#%d ITS NOT CONNECTED YET!\n Bytes read: %d   -->   %x\n", i, bytes_read, buf[0]);
         // printf("Char Read: %x\n", buf[0]);
         /*------------------------------------------*/
         if (bytes_read != 0)
@@ -121,11 +119,13 @@ int read_UA()
                 break;
             }
         } 
-        else{
-            printf("[ERROR] Bytes not read!\n");
-            return connected;
+        // Check for timeout here?
+        if (alarmEnabled == FALSE) 
+        {
+            break;
         }
     }
+    
     return connected;
 }
 
@@ -180,7 +180,10 @@ void alarmTx(int signal)
 {
     alarmEnabled = FALSE;
     alarmCount++;
-    printf("[LOG] Initializing Communication.\n");
+
+    printf("TIMEOUT!\n");
+
+    /*printf("[LOG] Initializing Communication.\n");
     write(fd, _SET, 5);
 
     if (read_UA() == TRUE)
@@ -191,7 +194,7 @@ void alarmTx(int signal)
     {
         printf("[ERROR] Connection Failed.\n");
         printf("[LOG] Retrying connection.\n");
-    }
+    }*/
 }
 
 ////////////////////////////////////////////////
@@ -207,13 +210,26 @@ int llopen(LinkLayer connectionParameters)
 
         while (alarmCount < connectionParameters.nRetransmissions && connectionEnabled == FALSE)
         {
+            // Start the alarm
             if (alarmEnabled == FALSE)
             {
-                // Timeout from VMIN colliding with this call?
                 alarm(connectionParameters.timeout);
                 alarmEnabled = TRUE;
-                printf("[LOG] Sending SET [%d]!\n", alarmCount);
             }
+
+            // Send SET
+            printf("Sending SET [%d]!\n", alarmCount);
+            printf("[LOG] Initializing Communication.\n");
+            write(fd, _SET, 5);
+
+            // Read the UA and verify it
+            if (read_UA() == TRUE)
+                connectionEnabled = TRUE;
+            else
+            {
+            printf("[ERROR] Connection Failed.\n");
+            printf("[LOG] Retrying connection.\n");  
+            } 
         }
 
         if (connectionEnabled == TRUE)
@@ -227,6 +243,7 @@ int llopen(LinkLayer connectionParameters)
         {
             printf("[LOG] Connection failed.\n");
             printf("[LOG] Exiting.\n");
+            llclose(0);
             exit(-1);
         }
     }
