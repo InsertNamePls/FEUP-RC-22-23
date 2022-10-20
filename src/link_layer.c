@@ -286,7 +286,7 @@ int llwrite(const unsigned char *buf, int bufSize)
             auxBuffer[auxBufferIndex] = S1;
             auxBufferIndex++;
             auxBuffer[auxBufferIndex] = S3;
-            auxBufferIndex++;
+
         }else{
             auxBuffer[auxBufferIndex] = buf[i];
         }
