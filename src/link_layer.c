@@ -122,7 +122,7 @@ int read_UA()
             }
         } 
         else{
-            printf("Bytes not read!\n");
+            printf("[ERROR] Bytes not read!\n");
             return connected;
         }
     }
@@ -136,11 +136,8 @@ int read_SET()
     int connected = FALSE;
     while (state != STOP && connected == FALSE)
     {
-        /* mudar isto para chamadas a funcao LL open*/
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
-        // printf("char read: %x\n", buf[0]);
-        /*------------------------------------------*/
         if (bytes_read != 0)
         {
             switch (state)
@@ -168,7 +165,6 @@ int read_SET()
                 {
                     printf("[LOG] Writter Connected.\n");
                     connected = TRUE;
-                    /*Mandar SET se connected prov melhorar isto com alguma funcao or smth*/
                     write(fd, _UA, 5);
                 }
                 break;
@@ -216,7 +212,7 @@ int llopen(LinkLayer connectionParameters)
                 // Timeout from VMIN colliding with this call?
                 alarm(connectionParameters.timeout);
                 alarmEnabled = TRUE;
-                printf("Sending SET [%d]!\n", alarmCount);
+                printf("[LOG] Sending SET [%d]!\n", alarmCount);
             }
         }
 
@@ -260,45 +256,44 @@ char calculateBCC2(unsigned char* packet, int packetsize){
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
-    int tempSize = bufSize * 2;
-    unsigned char holder[tempSize];
+    
+    int newDataSize = 0;
 
-    int finalpacketSize = 0;
-    for (int i = 0; i < bufSize; i++)
-    {
-        if (buf[i] == F)
-        {
-            holder[i] = S1;
-            holder[i + 1] = S2;
-            finalpacketSize += 2;
-            i++;
+    unsigned char auxBuffer[bufSize*2];
+    int auxBufferIndex=0;
+    char bcc2 = calculateBCC2(buf,bufSize);
+    for (int i = 0; i<bufSize;i++){
+        if (buf[i] == 0x7e){
+           auxBufferIndex++;
+           // printf("Got a FLAG\n");
+        }else if (buf[i] == S1){
+           // printf("Got a S1\n");
+            auxBufferIndex++;
+        }else{
+            auxBuffer[auxBufferIndex] = buf[i];
+            printf("%x",buf[i]);
         }
-        else if (buf[i] == S1)
-        {
-            holder[i] = S1;
-            holder[i + 1] = S3;
-            finalpacketSize += 2;
-            i++;
-        }
-        else
-        {
-            holder[i] = buf[i];
-            finalpacketSize++;
-        }
+        auxBufferIndex++;
     }
+    printf("\n");
 
-    finalpacketSize += 6;
+
+
+    int finalpacketSize = newDataSize + 6;
     unsigned char finalPacket[finalpacketSize];
+
     finalPacket[0] = F;
     finalPacket[1] = A_W;
-    finalPacket[2] = 9; // NEED TO SEE C CALCULATE THIS
+    finalPacket[2] = 0x09; // NEED TO SEE C CALCULATE THIS
     finalPacket[3] = finalPacket[1] ^ finalPacket[2];
 
-    memcpy(finalPacket + 4, holder, finalpacketSize - 2);
+    //memcpy(finalPacket + 4, holder, finalpacketSize - 2);
+    
 
-    finalPacket[bufSize + 4] = calculateBCC2(finalPacket,finalpacketSize); 
-    finalPacket[bufSize + 5] = F;
-
+  
+    finalPacket[finalpacketSize -2] = bcc2; // need to stuff bcc2;
+    finalPacket[finalpacketSize -1] = F;
+    
     printf("[PACKET]");
     for (int i = 0; i < finalpacketSize; i++)
         printf("%x", finalPacket[i]);
