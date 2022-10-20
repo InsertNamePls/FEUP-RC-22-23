@@ -29,8 +29,8 @@ void setupPorts(LinkLayer connectionParameters)
     newtio.c_oflag = 0;
 
     newtio.c_lflag = 0;
-    newtio.c_cc[VTIME] = 0;
-    newtio.c_cc[VMIN] = 1;
+    newtio.c_cc[VTIME] = 20;
+    newtio.c_cc[VMIN] = 0;
     tcflush(fd, TCIOFLUSH);
 
     // Set new port settings
@@ -75,12 +75,14 @@ int read_UA()
 {
     int state = START;
     int connected = FALSE;
+    // Gets stuck in here if there is no UA and doesn't have a timeout 
     while (state != STOP && connected == FALSE)
     {
         /* mudar isto para chamadas a funcao LL read*/
         unsigned char buf[2];
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
+        //printf("#%d ITS NOT CONNECTED YET!\n Bytes read: %d   -->   %x\n", i, bytes_read, buf[0]);
         // printf("Char Read: %x\n", buf[0]);
         /*------------------------------------------*/
         if (bytes_read != 0)
@@ -112,11 +114,16 @@ int read_UA()
                 {
                     connected = TRUE;
                     printf("[LOG] Reader Connected.\n");
+                    state = STOP;
                 }
                 break;
             default:
                 break;
             }
+        } 
+        else{
+            printf("Bytes not read!\n");
+            return connected;
         }
     }
     return connected;
@@ -206,9 +213,10 @@ int llopen(LinkLayer connectionParameters)
         {
             if (alarmEnabled == FALSE)
             {
+                // Timeout from VMIN colliding with this call?
                 alarm(connectionParameters.timeout);
                 alarmEnabled = TRUE;
-                // printf("Sending SET [%d]!\n", alarmCount);
+                printf("Sending SET [%d]!\n", alarmCount);
             }
         }
 
