@@ -46,15 +46,7 @@ FILE *getFile(const char *filename)
   file = fopen(filename, "rb");
   return file;
 }
-#define PAYLOAD 600
-
-void printArray(unsigned char *array)
-{
- /*printf("[PACKET]");
-  for (int i = 0; i < PAYLOAD; i++)
-    printf("%x", array[i]);
-  printf("\n");*/ 
-}
+#define PAYLOAD 600 // mover isto para configs.h
 
 void apWrite(FILE *pengu)
 {

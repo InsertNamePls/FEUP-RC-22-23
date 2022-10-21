@@ -320,6 +320,50 @@ int llwrite(const unsigned char *buf, int bufSize)
 int llread(unsigned char *packet)
 {
     return read(fd, packet, PAYLOAD + 9);
+
+    unsigned char buf[2];
+    int state = START;
+    int connected = FALSE;
+
+    while (state != STOP && connected == FALSE)
+    {
+        int bytes_read = read(fd, buf, 1);
+        unsigned char char_received = buf[0];
+        if (bytes_read != 0)
+        {
+            switch (state)
+            {
+            case START:
+                if (!next_State(char_received, F, FLAG_RCV, &state))
+                    state = START;
+                break;
+            case FLAG_RCV:
+                if (!(next_State(char_received, A_W, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case A_RCV:
+                if (!(next_State(char_received, SET, C_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case C_RCV:
+                if (!(next_State(char_received, BCC1_SET, BCC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case BCC_OK:
+                if (!next_State(char_received, F, STOP, &state))
+                    state = START;
+                else
+                {
+                    printf("[LOG] Writter Connected.\n");
+                    connected = TRUE;
+                    write(fd, _UA, 5);
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
 }
 
 ////////////////////////////////////////////////
