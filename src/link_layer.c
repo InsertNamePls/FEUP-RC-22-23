@@ -165,6 +165,7 @@ int read_SET()
                 {
                     printf("[LOG] Writter Connected.\n");
                     connected = TRUE;
+                    state = STOP;
                     write(fd, _UA, 5);
                 }
                 break;
@@ -172,29 +173,20 @@ int read_SET()
                 break;
             }
         }
+        if(alarmEnabled == FALSE)
+        {
+            break;
+        }
     }
     return connected;
 }
 
-void alarmTx(int signal)
+void alarmHandler(int signal)
 {
     alarmEnabled = FALSE;
     alarmCount++;
 
-    printf("TIMEOUT!\n");
-
-    /*printf("[LOG] Initializing Communication.\n");
-    write(fd, _SET, 5);
-
-    if (read_UA() == TRUE)
-    {
-        connectionEnabled = TRUE;
-    }
-    else
-    {
-        printf("[ERROR] Connection Failed.\n");
-        printf("[LOG] Retrying connection.\n");
-    }*/
+    printf("[LOG] TIMEOUT!\n");
 }
 
 ////////////////////////////////////////////////
@@ -206,7 +198,7 @@ int llopen(LinkLayer connectionParameters)
 
     if (connectionParameters.role == LlTx)
     {
-        (void)signal(SIGALRM, alarmTx);
+        (void)signal(SIGALRM, alarmHandler);
 
         while (alarmCount < connectionParameters.nRetransmissions && connectionEnabled == FALSE)
         {
@@ -250,8 +242,44 @@ int llopen(LinkLayer connectionParameters)
     else
     {
         // receiver
-        //(void)signal(SIGALRM, alarmRx);
-        connectionEnabled = read_SET();
+        //connectionEnabled = read_SET();
+        (void)signal(SIGALRM, alarmHandler);
+
+         while (alarmCount < connectionParameters.nRetransmissions && connectionEnabled == FALSE)
+        {
+            // Start the alarm
+            if (alarmEnabled == FALSE)
+            {
+                alarm(connectionParameters.timeout);
+                alarmEnabled = TRUE;
+            }
+
+            // Read SET
+            printf("Checking for SET [%d]!\n", alarmCount);
+            printf("[LOG] Initializing Communication.\n");
+            if (read_SET() == TRUE)
+                connectionEnabled = TRUE;
+            else
+            {
+            printf("[ERROR] Connection Failed.\n");
+            printf("[LOG] Retrying connection.\n");  
+            }
+        }
+
+        if (connectionEnabled == TRUE)
+        {
+            alarmEnabled = FALSE;
+            alarmCount = 0;
+
+            printf("[LOG] Waiting for data.\n");
+        }
+        else
+        {
+            printf("[LOG] Connection failed.\n");
+            printf("[LOG] Exiting.\n");
+            llclose(0);
+            exit(-1);
+        }
     }
 
     if (connectionEnabled == TRUE)
