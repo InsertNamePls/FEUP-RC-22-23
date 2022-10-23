@@ -112,7 +112,6 @@ int read_UA()
                 {
                     connected = TRUE;
                     printf("[LOG] Reader Connected.\n");
-                    state = STOP;
                 }
                 break;
             default:
@@ -165,8 +164,9 @@ int read_SET()
                 {
                     printf("[LOG] Writter Connected.\n");
                     connected = TRUE;
-                    state = STOP;
                     write(fd, _UA, 5);
+
+                    sleep(1);
                 }
                 break;
             default:
@@ -181,12 +181,138 @@ int read_SET()
     return connected;
 }
 
+int read_IFrame(){
+    unsigned char buf[2];
+    int state = START;
+    int connection = FALSE;
+    while(state != STOP){
+        int bytes_read = read(fd, buf, 1);
+        unsigned char char_received = buf[0];
+        if(bytes_read != 0){
+            switch(state){
+                case START:
+                if (!next_State(char_received, F, FLAG_RCV, &state))
+                    state = START;
+                break;
+            case FLAG_RCV:
+                if (!(next_State(char_received, A_W, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case A_RCV:
+                if (!(next_State(char_received, I_0, I_RCV, &state) || next_State(char_received, I_1, I_RCV, &state) ||  next_State(char_received, DISC, DISC_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case I_RCV:
+                if(!(next_State(char_received, BCC_I0, BCC_I_OK, &state) || next_State(char_received, BCC_I1, BCC_I_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case DISC_RCV:
+                if(!(next_State(char_received, BCC1_DISC_W, I_RCV, &state) || next_State(char_received, BCC1_DISC_R, I_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case BCC_I_OK:
+                if (!next_State(char_received, F, STOP, &state))
+                    state = BCC_I_OK;
+                else
+                {
+                    printf("[LOG] Valid Information Frame.\n");
+                    connection = TRUE;
+                    printf("[LOG] Sending RR frame.\n");
+                    if(curSeqNum == 0) write(fd, _RR_0, 5);
+                    else if(curSeqNum == 1) write(fd, _RR_1, 5);
+                    else printf("[ERROR] Invalid sequence number!\n");
+                }
+                break;
+            case BCC_DISC_OK:
+                if (!next_State(char_received, F, STOP, &state))
+                    state = START;
+                else
+                {
+                    printf("[LOG] Read DISC frame.\n");
+                    printf("[LOG] Sending response DISC frame.\n");
+                    write(fd, _DISC_R, 5);
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return connection;
+}
+
+int read_IFrameRes(){
+    unsigned char buf[2];
+    int state = START;
+    int connection = FALSE;
+    while(state != STOP){
+        int bytes_read = read(fd, buf, 1);
+        unsigned char char_received = buf[0];
+        if(bytes_read != 0){
+            switch(state){
+                case START:
+                if (!next_State(char_received, F, FLAG_RCV, &state))
+                    state = START;
+                break;
+            case FLAG_RCV:
+                if (!(next_State(char_received, A_W, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case A_RCV:
+                if (!(next_State(char_received, RR_0, RR_RCV, &state) || next_State(char_received, RR_1, RR_RCV, &state) || next_State(char_received, REJ_0, REJ_RCV, &state) || next_State(char_received, REJ_1, REJ_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case RR_RCV:
+                if(!(next_State(char_received, BCC1_RR0, BCC_RR_OK, &state) || next_State(char_received, BCC1_RR1, BCC_RR_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case REJ_RCV:
+                if(!(next_State(char_received, BCC1_REJ0, BCC_REJ_OK, &state) || next_State(char_received, BCC1_REJ1, BCC_REJ_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case BCC_RR_OK:
+                if (!next_State(char_received, F, STOP, &state))
+                    state = START;
+                else
+                {
+                    printf("[LOG] Received RR.\n");
+                    connection = TRUE;
+                    //verify sequence number
+                }
+                break;
+            case BCC_REJ_OK:
+                if (!next_State(char_received, F, STOP, &state))
+                    state = START;
+                else
+                {
+                    printf("[LOG] Received REJ.\n");
+                    connection = TRUE;
+                    //verify sequence number
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        else if (alarmEnabled == FALSE){
+            break;
+        }
+    }
+    return connection;
+}
+
 void alarmHandler(int signal)
 {
     alarmEnabled = FALSE;
     alarmCount++;
 
-    printf("[LOG] TIMEOUT!\n");
+    //printf("[LOG] TIMEOUT!\n");
+}
+
+unsigned char getCvalue(){
+    if(curSeqNum == 0) return I_0;
+    else if(curSeqNum == 1) return I_1;
+    return -1;
 }
 
 ////////////////////////////////////////////////
@@ -213,6 +339,8 @@ int llopen(LinkLayer connectionParameters)
             printf("Sending SET [%d]!\n", alarmCount);
             printf("[LOG] Initializing Communication.\n");
             write(fd, _SET, 5);
+
+            sleep(1);
 
             // Read the UA and verify it
             if (read_UA() == TRUE)
@@ -242,7 +370,6 @@ int llopen(LinkLayer connectionParameters)
     else
     {
         // receiver
-        //connectionEnabled = read_SET();
         (void)signal(SIGALRM, alarmHandler);
 
          while (alarmCount < connectionParameters.nRetransmissions && connectionEnabled == FALSE)
@@ -301,7 +428,10 @@ char calculateBCC2(unsigned char* packet, int packetsize){
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
+    // Return variable
+    int totalWrittenBytes = -1;
 
+    // Stuffing frames to be sent
     unsigned char auxBuffer[bufSize*2];
     int auxBufferIndex=0;
     char bcc2 = calculateBCC2(buf,bufSize);
@@ -321,12 +451,13 @@ int llwrite(const unsigned char *buf, int bufSize)
         auxBufferIndex++;
     }
 
+    // Preparing final packet
     int finalpacketSize = auxBufferIndex + 6;
     unsigned char finalPacket[finalpacketSize];
 
     finalPacket[0] = F;
     finalPacket[1] = A_W;
-    finalPacket[2] = 0x09; // NEED TO SEE C CALCULATE THIS
+    finalPacket[2] = getCvalue();
     finalPacket[3] = finalPacket[1] ^ finalPacket[2];
 
     memcpy(finalPacket + 4, auxBuffer, auxBufferIndex);
@@ -334,12 +465,51 @@ int llwrite(const unsigned char *buf, int bufSize)
     finalPacket[finalpacketSize -2] = bcc2; // need to stuff bcc2;
     finalPacket[finalpacketSize -1] = F;
     
+    // DEBUG prints
+    printf("\n\n###########################################################################\n\n");
     printf("[PACKET]");
     for (int i = 0; i < finalpacketSize; i++)
         printf("%x ", finalPacket[i]);
     printf("\n");
+    
+    (void)signal(SIGALRM, alarmHandler);
+    connectionEnabled = FALSE;
 
-    return write(fd, finalPacket, finalpacketSize);
+    //missing actual timeout and number of tries values
+    while(alarmCount < 3 && connectionEnabled == FALSE){
+        // Call the alarm
+        if(alarmEnabled == FALSE){
+            alarm(4);
+            alarmEnabled = TRUE;
+        }
+
+        printf("[LOG] Sending packet. (Attempt #%d)\n", alarmCount+1);
+        printf("[LOG] Waiting for confirmation.\n");
+        // Send the Info frame (How to get alarm seetings?)
+        totalWrittenBytes = write(fd, finalPacket, finalpacketSize);
+
+        // Wait until bytes are written to the port
+        sleep(1);
+        
+        // Read response (missing DISC processing)
+        if (read_IFrameRes() == FALSE)
+        {
+            printf("[ERROR] Response not received.\n");
+            printf("[LOG] Retrying connection.\n");  
+        }
+        else {
+            if(connectionEnabled == FALSE){
+                printf("[LOG] Invalid Info Frame.\n");
+                printf("[LOG] Resending packet.\n");
+            }
+            else {
+                connectionEnabled = TRUE;
+                printf("[LOG] Received packet with success.\n");
+            }
+        }
+    }
+
+    return totalWrittenBytes;
 }
 
 ////////////////////////////////////////////////
@@ -349,7 +519,7 @@ int llread(unsigned char *packet)
 {
     return read(fd, packet, PAYLOAD + 9);
 
-    unsigned char buf[2];
+    /*unsigned char buf[2];
     int state = START;
     int connected = FALSE;
 
@@ -391,7 +561,7 @@ int llread(unsigned char *packet)
                 break;
             }
         }
-    }
+    }*/
 }
 
 ////////////////////////////////////////////////
