@@ -28,7 +28,8 @@
 #define S3 0x5D
 
 #define BCC1_SET A_W ^ SET
-#define BCC1_UA A_R ^ UA
+#define BCC1_UA_R A_W ^ UA
+#define BCC1_UA_W A_R ^ UA
 #define BCC_I0 A_W ^ I_0
 #define BCC_I1 A_W ^ I_1 
 #define BCC1_DISC_W A_W ^ DISC
@@ -56,14 +57,14 @@
 
 /*Generic Frames*/
 unsigned char _SET[5] = {F, A_W, SET, BCC1_SET, F};
-unsigned char _UA[5] = {F, A_R, UA, BCC1_UA, F};
+unsigned char _UA_R[5] = {F, A_W, UA, BCC1_UA_R, F};
 unsigned char _DISC_W[5] = {F, A_W, DISC, BCC1_DISC_W, F};
 unsigned char _DISC_R[5] = {F, A_R, DISC, BCC1_DISC_R, F};
-unsigned char _RR_0[5] = {F, A_R, RR_0, BCC1_RR0, F};
-unsigned char _REJ_0[5] = {F, A_R, REJ_0, BCC1_REJ0, F};
-unsigned char _RR_1[5] = {F, A_R, RR_1, BCC1_RR1, F};
-unsigned char _REJ_1[5] = {F, A_R, REJ_1, BCC1_REJ1, F};
-unsigned char _UA_W[5] = {F, A_R, UA, BCC1_UA, F};
+unsigned char _RR_0[5] = {F, A_W, RR_0, BCC1_RR0, F};
+unsigned char _REJ_0[5] = {F, A_W, REJ_0, BCC1_REJ0, F};
+unsigned char _RR_1[5] = {F, A_W, RR_1, BCC1_RR1, F};
+unsigned char _REJ_1[5] = {F, A_W, REJ_1, BCC1_REJ1, F};
+unsigned char _UA_W[5] = {F, A_R, UA, BCC1_UA_W, F};
 
 /*Global Settings*/
 #define FALSE 0

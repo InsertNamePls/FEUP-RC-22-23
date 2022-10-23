@@ -92,7 +92,7 @@ int read_UA()
                     state = START;
                 break;
             case FLAG_RCV:
-                if (!(next_State(char_received, A_R, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                if (!(next_State(char_received, A_W, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
                     state = START;
                 break;
             case A_RCV:
@@ -100,7 +100,7 @@ int read_UA()
                     state = START;
                 break;
             case C_RCV:
-                if (!(next_State(char_received, BCC1_UA, BCC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                if (!(next_State(char_received, BCC1_UA_R, BCC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
                     state = START;
                 break;
             case BCC_OK:
@@ -118,7 +118,6 @@ int read_UA()
                 break;
             }
         } 
-        // Check for timeout here?
         if (alarmEnabled == FALSE) 
         {
             break;
@@ -164,9 +163,7 @@ int read_SET()
                 {
                     printf("[LOG] Writter Connected.\n");
                     connected = TRUE;
-                    write(fd, _UA, 5);
-
-                    sleep(1);
+                    write(fd, _UA_R, 5);
                 }
                 break;
             default:
