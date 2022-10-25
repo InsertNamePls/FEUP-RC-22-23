@@ -53,7 +53,6 @@
 #define BCC_DISC_OK 12
 #define BCC_RR_OK 13
 #define BCC_REJ_OK 14
-#define A
 
 /*Generic Frames*/
 unsigned char _SET[5] = {F, A_W, SET, BCC1_SET, F};

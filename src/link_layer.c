@@ -362,8 +362,7 @@ int read_IFrameRes(int *totalBytes)
             case BCC_RR_OK:
                 if (!next_State(char_received, F, STOP, &state))
                     state = START;
-                else if (rcv_control_value == (curSeqNum + 1) % 2)
-                {
+                else if (rcv_control_value == (curSeqNum + 1) % 2){
                     // If the control value received (in a RR) is the opposite of the I frame one then it can send another one
                     //printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
                     printf("[LOG] Received RR.\n");
@@ -663,8 +662,8 @@ int llread(unsigned char *packet)
             printf("[LOG] Packet Read successfully.\n");
             printf("[LOG] Sending RR frame.\n");
             
-            if(curSeqNum == 0) write(fd, _RR_1, 5);
-            else if(curSeqNum == 1) write(fd, _RR_0, 5);
+            if(holder[2] == I_0) write(fd, _RR_1, 5);
+            else if(holder[2] == I_1) write(fd, _RR_0, 5);
             else printf("[ERROR] Invalid sequence number!\n");
         //}
         /*else {
