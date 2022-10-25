@@ -53,6 +53,7 @@ void apWrite(FILE *pengu)
   unsigned char buffer[PAYLOAD];
   unsigned char packet[PAYLOAD + 3];
   int bytesRead = 0;
+  int totalBytesRead = 0;
   while ((bytesRead = fread(buffer, 1, PAYLOAD, pengu)) > 0)
   {
     packet[0] = 0; // control field
@@ -62,6 +63,8 @@ void apWrite(FILE *pengu)
 
     // need byte stuffing
     llwrite(packet, sizeof(packet));
+
+    totalBytesRead += bytesRead;
   }
 
   fclose(pengu);
@@ -89,8 +92,10 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   {
     printf("[LOG] Reader Ready.\n");
     unsigned char buf[PAYLOAD + 9];
+    
     int x = llread(buf);
     printf("PRINTED!\n");
   }
+  
   llclose(0);
 }

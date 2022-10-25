@@ -7,7 +7,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <signal.h>
-#include <string.h>
 
 /* Flag Configs*/
 #define F 0x7E
@@ -77,5 +76,8 @@ int alarmEnabled = FALSE;
 int connectionEnabled = FALSE;
 int alarmCount = 0;
 int curSeqNum = 0;
+int disconnect = FALSE;
+int transmitingData = FALSE;
+int next_IFrame = FALSE;
 struct termios oldtio;
 struct termios newtio;
