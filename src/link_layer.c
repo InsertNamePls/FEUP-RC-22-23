@@ -5,9 +5,22 @@
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
+LinkLayer ll;
+
 /*Aux Functions*/
+LinkLayer initLinkLayer(LinkLayer cons){
+    LinkLayer ll;
+    ll.baudRate = cons.baudRate;
+    ll.nRetransmissions =  cons.nRetransmissions;
+    ll.role = cons.role;
+    strcpy(ll.serialPort, cons.serialPort);
+    ll.timeout = cons.timeout;
+}
+
 void setupPorts(LinkLayer connectionParameters)
 {
+    ll = initLinkLayer(connectionParameters);
+
     fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd < 0)
     {
@@ -118,7 +131,6 @@ int read_DISC()
     }
     return connected;
 }
-
 
 int read_UA()
 {
@@ -576,12 +588,12 @@ int llwrite(const unsigned char *buf, int bufSize)
     (void)signal(SIGALRM, alarmHandler);
 
     // missing actual timeout and number of tries values
-    while (alarmCount < 3 && next_IFrame == FALSE)
+    while (alarmCount < ll.nRetransmissions && next_IFrame == FALSE)
     {
         // Call the alarm
         if (alarmEnabled == FALSE)
         {
-            alarm(4);
+            alarm(ll.timeout);
             alarmEnabled = TRUE;
         }
 
