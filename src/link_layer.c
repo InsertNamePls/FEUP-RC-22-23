@@ -178,7 +178,6 @@ int read_IFrame(unsigned char* buf, int *bufSize){
     int state = START;
     int frame_rcv = FALSE;
     int i=0;
-    unsigned char bcc2;
     while(state != STOP && frame_rcv == FALSE){
         int bytes_read = read(fd, buf+i, 1);
         unsigned char char_received = buf[i];
@@ -223,7 +222,6 @@ int read_IFrame(unsigned char* buf, int *bufSize){
                 {   
                     state = BCC_I_OK;
                     i++;
-                    bcc2 = char_received;
                 }
                 else
                 {
@@ -260,8 +258,8 @@ int read_IFrameRes(int *totalBytes){
     // get a rcv_control_value to save the received frame control value and
     // to later check with the current sequence value
     int rcv_control_value;
-    printf("\n---------------------------read_IFramesRes------------------------\n\n");
-    while(state != STOP){
+    //printf("\n---------------------------read_IFramesRes------------------------\n\n");
+    while(state != STOP && alarmEnabled == TRUE){
         int bytes_read = read(fd, buf, 1);
         *totalBytes += bytes_read;
         //printf("\n\nTotal Response bytes read: %d\n\n",*totalBytes);
@@ -300,7 +298,7 @@ int read_IFrameRes(int *totalBytes){
                 else if(rcv_control_value == (curSeqNum+1)%2)
                 {
                     // If the control value received (in a RR) is the opposite of the I frame one then it can send another one
-                    //printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
+                    printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
                     printf("[LOG] Received RR.\n");
                     frame_rcv = TRUE;
                     next_IFrame = TRUE;
@@ -309,7 +307,7 @@ int read_IFrameRes(int *totalBytes){
                 else 
                 {   
                     // If the control value received is invalid then send the I frame again
-                    //printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
+                    printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
                     printf("[ERROR] RR: Wrong sequence number, discarting frame.\n");
                     frame_rcv = TRUE;
                 }
@@ -335,9 +333,6 @@ int read_IFrameRes(int *totalBytes){
             default:
                 break;
             }
-        }
-        else if (alarmEnabled == FALSE){
-            break;
         }
     }
     return frame_rcv;
@@ -511,14 +506,22 @@ int llwrite(const unsigned char *buf, int bufSize)
         printf("[LOG] Waiting for confirmation.\n");
         totalWrittenBytes = write(fd, finalPacket, finalpacketSize);
 
+        /*printf("[FINALPACKET] ");
+        for(int i=0;i<finalpacketSize;i++){
+            printf("%x ", finalPacket[i]);
+        }
+        printf("\n");*/
+
         // Read response (missing DISC processing)
         // Only leaves the sending frame loop once it has received a correct RR
         if (read_IFrameRes(&totalWrittenBytes) == TRUE)
         {
             // If it read a frame response and it's REJ
-            if(next_IFrame == FALSE){
+            if(next_IFrame == FALSE){ 
                 printf("[LOG] Invalid Info Frame.\n");
                 printf("[LOG] Resending packet.\n");
+
+                alarmEnabled = FALSE;
             }
             else{
                 alarmEnabled = FALSE;
@@ -529,6 +532,8 @@ int llwrite(const unsigned char *buf, int bufSize)
         else {
             printf("[ERROR] Response not received.\n");
             printf("[LOG] Retrying connection.\n"); 
+
+            alarmEnabled = FALSE;
         }
         //printf("\n\nTotal Response bytes read: %d\n\n",totalWrittenBytes);
     }
@@ -541,43 +546,55 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 { 
-    int i = 0;
-    unsigned char buf[2]; 
     unsigned char holder[PAYLOAD + 10];
     int realsize = 0;
-    
-    while ( i < PAYLOAD + 10) // mudar isto para state machine e meter para Flag
+    int totalReadBytes = -1;
+
+    // It can only return FALSE when DISC is found (still needs taking care of)
+    if(read_IFrame(holder, &totalReadBytes) == FALSE)
     {
-        int bytes_read = read(fd, buf, 1);
-        unsigned char char_received = buf[0];
-        if (bytes_read > 0)
-        {
-            holder[i] = char_received; 
-            printf("data[%i]: %x \n ",i, char_received);
-            i++;
-        }
+        printf("[LOG] Received a Disconnect Frame.\n");
+        printf("[LOG] Sending response DISC frame.\n");
+        //write(fd, DISC_R, 5);
     }
-
-    unsigned char aux[sizeof(holder)];
+    else{ 
+        // Start destuffing the holder
+        unsigned char aux[sizeof(holder)];
   
-    for (int i = 0; i<sizeof(holder)-1;i++){
-        if (holder[i] == S1 && holder[i+1] == S2){ 
-           aux[realsize] = F;
-           i++;
-        }else if (holder[i] == S1 && holder[i+1] == S3){
-            aux[realsize] = S1;
-            i++;
-        }else{
-            aux[realsize] = holder[i];
+        for (int i = 0; i<sizeof(holder)-1;i++){
+            if (holder[i] == S1 && holder[i+1] == S2){ 
+                aux[realsize] = F;
+                i++;
+            }else if (holder[i] == S1 && holder[i+1] == S3){
+                aux[realsize] = S1;
+                i++;
+            }else{
+                aux[realsize] = holder[i];
+            }
+            realsize++;
         }
-        realsize++;
+        // Get the bcc2 in the packet and calculate bcc2 in the packet
+        //unsigned char bcc2_rcv = aux[realsize - 2];??
+        // Validate Info frame and choose which packet to send
+        //if(bcc2_rcv == calculateBCC2(aux, realsize)){
+            printf("[LOG] Packet Read successfully.\n");
+            printf("[LOG] Sending RR frame.\n");
+            
+            if(curSeqNum == 0) write(fd, _RR_1, 5);
+            else if(curSeqNum == 1) write(fd, _RR_0, 5);
+            else printf("[ERROR] Invalid sequence number!\n");
+        //}
+        /*else {
+            printf("[LOG] Faulty Info Packet.\n");
+            printf("[LOG] Sending REJ frame.\n");
+            
+            if(curSeqNum == 0) write(fd, _REJ_0, 5);
+            else if(curSeqNum == 1) write(fd, _REJ_1, 5);
+            else printf("[ERROR] Invalid sequence number!\n");
+        }*/
     }
 
-    /*
-    check bbc1; fazer a verificacao de bbc1 e bbc2
-    check bbc2; 
-    */
-
+    // Remove headers
     printf("Unstuffed size: %d\n", realsize);
     unsigned char data[PAYLOAD];
     for (int i = 7; i < realsize - 2; i++)
@@ -585,51 +602,10 @@ int llread(unsigned char *packet)
         data[i - 7] = aux[i];
     }
 
-
+    // Write the data in the file
     FILE *file = fopen("pengu.gif", "wb+");
     fwrite(data, sizeof(unsigned char), sizeof(data), file);
     fclose(file);
-    return 1;
-
-    /*int totalReadBytes = -1;
-
-    // It can only return FALSE when DISC is found
-    if(read_IFrame(packet, &totalReadBytes) == FALSE)
-    {
-        printf("[LOG] Received a Disconnect Frame.\n");
-        printf("[LOG] Sending response DISC frame.\n");
-        //write(fd, DISC_R, 5);
-    }
-    else{ */
-        /*
-            DO BYTE DESTUFFING HERE
-        */
-       // Get the bcc2 in the packet
-       // Calculate bcc2 in the packet
-       // Validate Info frame and choose which packet to send
-
-        /*printf("[LOG] Packet Read successfully.\n");
-        printf("[LOG] Sending RR frame.\n");
-        if(curSeqNum == 0) write(fd, _RR_1, 5);
-        else if(curSeqNum == 1) write(fd, _RR_0, 5);
-        else printf("[ERROR] Invalid sequence number!\n");*/
-        /*if(next_IFrame == TRUE)
-        {
-            printf("[LOG] Packet Read successfully.\n");
-            printf("[LOG] Sending RR frame.\n");
-            if(curSeqNum == 0) write(fd, _RR_1, 5);
-            else if(curSeqNum == 1) write(fd, _RR_0, 5);
-            else printf("[ERROR] Invalid sequence number!\n");
-        }
-        else {
-            printf("[LOG] Faulty Info Packet.\n");
-            printf("[LOG] Sending REJ frame.\n");
-            if(curSeqNum == 0) write(fd, _REJ_0, 5);
-            else if(curSeqNum == 1) write(fd, _REJ_1, 5);
-            else printf("[ERROR] Invalid sequence number!\n");
-        }*/
-    //}
-    //totalReadBytes = read(fd, packet, PAYLOAD + 9);
 
     return totalReadBytes;
 }
@@ -639,6 +615,12 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
+    // Send a final control packet
+    // Exchange DISC messages
+    // Send a final UA
+    // close the ports
+
+
     closePorts();
     return 1;
 }
