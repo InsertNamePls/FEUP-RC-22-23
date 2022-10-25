@@ -87,6 +87,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     FILE *pengu = getFile(filename);
     if (pengu != NULL)
       apWrite(pengu);
+    llclose(1);
   }
   else if (cons.role == LlRx)
   {
@@ -95,6 +96,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     
     int x = llread(buf);
     printf("PRINTED!\n");
+
   }
   
   llclose(0);
