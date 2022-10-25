@@ -518,7 +518,7 @@ int llread(unsigned char *packet)
     int connected = FALSE;
     unsigned char holder[PAYLOAD + 10];
     
-    while (i < PAYLOAD + 10)
+    while (i < PAYLOAD + 10) // mudar isto para state machine e meter para Flag
     {
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
@@ -531,7 +531,7 @@ int llread(unsigned char *packet)
     }
     unsigned char aux[sizeof(holder)];
     int realsize = 0;
-    for (int i = 0; i<sizeof(holder);i++){
+    for (int i = 0; i<sizeof(holder)-1;i++){
         if (holder[i] == S1 && holder[i+1] == S2){ 
            aux[realsize] == F;
            i++;
@@ -543,9 +543,22 @@ int llread(unsigned char *packet)
         }
         realsize++;
     }
-    printf("Unstuffed size: %d\n",realsize);
+
+    /*
+    check bbc1; fazer a verificacao de bbc1 e bbc2
+    check bbc2; 
+    */
+
+    printf("Unstuffed size: %d\n", realsize);
+    unsigned char data[PAYLOAD];
+    for (int i = 7; i < realsize - 2; i++)
+    {
+        data[i - 7] = aux[i];
+    }
+
+
     FILE *file = fopen("pengu.gif", "wb");
-    fwrite(aux, sizeof(unsigned char), sizeof(aux), file);
+    fwrite(data, sizeof(unsigned char), sizeof(data), file);
     fclose(file);
     return 1;
 }
