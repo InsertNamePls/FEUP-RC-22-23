@@ -470,39 +470,7 @@ int llwrite(const unsigned char *buf, int bufSize)
     (void)signal(SIGALRM, alarmHandler);
     connectionEnabled = FALSE;
 
-    //missing actual timeout and number of tries values
-    while(alarmCount < 3 && connectionEnabled == FALSE){
-        // Call the alarm
-        if(alarmEnabled == FALSE){
-            alarm(4);
-            alarmEnabled = TRUE;
-        }
 
-        printf("[LOG] Sending packet. (Attempt #%d)\n", alarmCount+1);
-        printf("[LOG] Waiting for confirmation.\n");
-        // Send the Info frame (How to get alarm seetings?)
-        totalWrittenBytes = write(fd, finalPacket, finalpacketSize);
-        printf("SIZE_--------------------------------------- %d\n",finalpacketSize);
-        // Wait until bytes are written to the port
-        sleep(1);
-        
-        // Read response (missing DISC processing)
-        if (read_IFrameRes() == FALSE)
-        {
-            printf("[ERROR] Response not received.\n");
-            printf("[LOG] Retrying connection.\n");  
-        }
-        else {
-            if(connectionEnabled == FALSE){
-                printf("[LOG] Invalid Info Frame.\n");
-                printf("[LOG] Resending packet.\n");
-            }
-            else {
-                connectionEnabled = TRUE;
-                printf("[LOG] Received packet with success.\n");
-            }
-        }
-    }
 
     return totalWrittenBytes;
 }
@@ -511,14 +479,13 @@ int llwrite(const unsigned char *buf, int bufSize)
 // LLREAD
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
-{
-    unsigned char buf[2];
-    int state = START;
+{ 
     int i = 0;
-    int connected = FALSE;
+    unsigned char buf[2]; 
     unsigned char holder[PAYLOAD + 10];
+    int realsize = 0;
     
-    while (i < PAYLOAD + 10) // mudar isto para state machine e meter para Flag
+    while ( i < PAYLOAD + 10) // mudar isto para state machine e meter para Flag
     {
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
@@ -529,14 +496,15 @@ int llread(unsigned char *packet)
             i++;
         }
     }
+
     unsigned char aux[sizeof(holder)];
-    int realsize = 0;
+  
     for (int i = 0; i<sizeof(holder)-1;i++){
         if (holder[i] == S1 && holder[i+1] == S2){ 
-           aux[realsize] == F;
+           aux[realsize] = F;
            i++;
         }else if (holder[i] == S1 && holder[i+1] == S3){
-            aux[realsize] == S1;
+            aux[realsize] = S1;
             i++;
         }else{
             aux[realsize] = holder[i];
@@ -557,7 +525,7 @@ int llread(unsigned char *packet)
     }
 
 
-    FILE *file = fopen("pengu.gif", "wb");
+    FILE *file = fopen("pengu.gif", "wb+");
     fwrite(data, sizeof(unsigned char), sizeof(data), file);
     fclose(file);
     return 1;

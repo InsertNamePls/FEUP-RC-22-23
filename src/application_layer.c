@@ -58,7 +58,7 @@ void apWrite(FILE *pengu)
     packet[0] = 0; // control field
     packet[1] = 1; // sequence number
     packet[2] = 2; // number of octects
-    memcpy(packet + 3, buffer,sizeof(packet));
+    memcpy(packet + 3, buffer, sizeof(packet));
 
     // need byte stuffing
     llwrite(packet, sizeof(packet));
@@ -89,12 +89,8 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   {
     printf("[LOG] Reader Ready.\n");
     unsigned char buf[PAYLOAD + 9];
-  
- 
-      int x = llread(buf);
- 
-      printf("PRINTED!\n");
-    
+    int x = llread(buf);
+    printf("PRINTED!\n");
   }
   llclose(0);
 }
