@@ -573,6 +573,8 @@ int llread(unsigned char *packet)
             }
             realsize++;
         }
+        //printf("Unstuffed size: %d\n", realsize);
+
         // Get the bcc2 in the packet and calculate bcc2 in the packet
         //unsigned char bcc2_rcv = aux[realsize - 2];??
         // Validate Info frame and choose which packet to send
@@ -595,8 +597,7 @@ int llread(unsigned char *packet)
     }
 
     // Remove headers
-    printf("Unstuffed size: %d\n", realsize);
-    unsigned char data[PAYLOAD];
+    /*unsigned char data[PAYLOAD];
     for (int i = 7; i < realsize - 2; i++)
     {
         data[i - 7] = aux[i];
@@ -605,7 +606,7 @@ int llread(unsigned char *packet)
     // Write the data in the file
     FILE *file = fopen("pengu.gif", "wb+");
     fwrite(data, sizeof(unsigned char), sizeof(data), file);
-    fclose(file);
+    fclose(file);*/
 
     return totalReadBytes;
 }
