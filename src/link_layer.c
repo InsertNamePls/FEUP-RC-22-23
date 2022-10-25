@@ -529,8 +529,23 @@ int llread(unsigned char *packet)
             i++;
         }
     }
+    unsigned char aux[sizeof(holder)];
+    int realsize = 0;
+    for (int i = 0; i<sizeof(holder);i++){
+        if (holder[i] == S1 && holder[i+1] == S2){ 
+           aux[realsize] == F;
+           i++;
+        }else if (holder[i] == S1 && holder[i+1] == S3){
+            aux[realsize] == S1;
+            i++;
+        }else{
+            aux[realsize] = holder[i];
+        }
+        realsize++;
+    }
+    printf("Unstuffed size: %d\n",realsize);
     FILE *file = fopen("pengu.gif", "wb");
-    fwrite(holder, sizeof(unsigned char), sizeof(holder), file);
+    fwrite(aux, sizeof(unsigned char), sizeof(aux), file);
     fclose(file);
     return 1;
 }
