@@ -242,12 +242,17 @@ int read_IFrame(unsigned char *buf, int *bufSize)
                     state = START;
                     i = 0;
                 }
+                else {
+                    i++;
+                }
                 break;
             case FLAG_RCV:
                 if (!(next_State(char_received, A_W, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
                 {
                     state = START;
                     i = 0;
+                }else {
+                    i++;
                 }
                 break;
             case A_RCV:
@@ -255,6 +260,8 @@ int read_IFrame(unsigned char *buf, int *bufSize)
                 {
                     state = START;
                     i = 0;
+                }else {
+                    i++;
                 }
                 break;
             case I_RCV:
@@ -262,6 +269,8 @@ int read_IFrame(unsigned char *buf, int *bufSize)
                 {
                     state = START;
                     i = 0;
+                }else {
+                    i++;
                 }
                 break;
             case DISC_RCV:
@@ -269,6 +278,8 @@ int read_IFrame(unsigned char *buf, int *bufSize)
                 {
                     state = START;
                     i = 0;
+                }else {
+                    i++;
                 }
                 break;
             case BCC_I_OK:
@@ -280,9 +291,6 @@ int read_IFrame(unsigned char *buf, int *bufSize)
                 else
                 {
                     frame_rcv = TRUE;
-                    /*for(int j=0;j<sizeof(buf);j++)
-                        printf(" %x", buf[j]);
-                    printf("\n");*/
                 }
                 break;
             case BCC_DISC_OK:
@@ -297,8 +305,8 @@ int read_IFrame(unsigned char *buf, int *bufSize)
             default:
                 break;
             }
+            *bufSize += bytes_read;
         }
-        *bufSize += bytes_read;
     }
 
     return frame_rcv;
@@ -312,9 +320,8 @@ int read_IFrameRes(int *totalBytes)
     // get a rcv_control_value to save the received frame control value and
     // to later check with the current sequence value
     int rcv_control_value;
-    printf("\n---------------------------read_IFramesRes------------------------\n\n");
-    while (state != STOP)
-    {
+
+    while(state != STOP && alarmEnabled == TRUE){
         int bytes_read = read(fd, buf, 1);
         *totalBytes += bytes_read;
         // printf("\n\nTotal Response bytes read: %d\n\n",*totalBytes);
@@ -358,7 +365,7 @@ int read_IFrameRes(int *totalBytes)
                 else if (rcv_control_value == (curSeqNum + 1) % 2)
                 {
                     // If the control value received (in a RR) is the opposite of the I frame one then it can send another one
-                    // printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
+                    //printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
                     printf("[LOG] Received RR.\n");
                     frame_rcv = TRUE;
                     next_IFrame = TRUE;
@@ -367,7 +374,7 @@ int read_IFrameRes(int *totalBytes)
                 else
                 {
                     // If the control value received is invalid then send the I frame again
-                    printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
+                    //printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
                     printf("[ERROR] RR: Wrong sequence number, discarting frame.\n");
                     frame_rcv = TRUE;
                 }
@@ -408,12 +415,13 @@ void alarmHandler(int signal)
     alarmCount++;
 }
 
-unsigned char getCvalue()
-{
-    if (curSeqNum == 0)
+unsigned char getCvalue(){
+    if(curSeqNum == 0){
         return I_0;
-    else if (curSeqNum == 1)
+    }
+    else if(curSeqNum == 1){
         return I_1;
+    }
     return -1;
 }
 
@@ -583,12 +591,6 @@ int llwrite(const unsigned char *buf, int bufSize)
         printf("[LOG] Waiting for confirmation.\n");
         totalWrittenBytes = write(fd, finalPacket, finalpacketSize);
 
-        /*printf("[FINALPACKET] ");
-        for(int i=0;i<finalpacketSize;i++){
-            printf("%x ", finalPacket[i]);
-        }
-        printf("\n");*/
-
         // Read response (missing DISC processing)
         // Only leaves the sending frame loop once it has received a correct RR
         if (read_IFrameRes(&totalWrittenBytes) == TRUE)
@@ -625,60 +627,9 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    int i = 0;
-    unsigned char buf[2];
     unsigned char holder[PAYLOAD + 10];
     int realsize = 0;
-
-    while (i < PAYLOAD + 10) // mudar isto para state machine e meter para Flag
-    {
-        int bytes_read = read(fd, buf, 1);
-        unsigned char char_received = buf[0];
-        if (bytes_read > 0)
-        {
-            holder[i] = char_received;
-            printf("data[%i]: %x \n ", i, char_received);
-            i++;
-        }
-    }
-
-    unsigned char aux[sizeof(holder)];
-
-    for (int i = 0; i < sizeof(holder) - 1; i++)
-    {
-        if (holder[i] == S1 && holder[i + 1] == S2)
-        {
-            aux[realsize] = F;
-            i++;
-        }
-        else if (holder[i] == S1 && holder[i + 1] == S3)
-        {
-            aux[realsize] = S1;
-            i++;
-        }
-        else
-        {
-            aux[realsize] = holder[i];
-        }
-        realsize++;
-    }
-
-    /*
-    check bbc1; fazer a verificacao de bbc1 e bbc2
-    check bbc2;
-    */
-
-    printf("Unstuffed size: %d\n", realsize);
-    unsigned char data[PAYLOAD];
-    for (int i = 7; i < realsize - 2; i++)
-    {
-        data[i - 7] = aux[i];
-    }
-
-    FILE *file = fopen("pengu.gif", "wb+");
-    fwrite(data, sizeof(unsigned char), sizeof(data), file);
-    fclose(file);
-    return 1;
+    int totalReadBytes = -1;
 
     // It can only return FALSE when DISC is found (still needs taking care of)
     if(read_IFrame(holder, &totalReadBytes) == FALSE)
@@ -732,13 +683,12 @@ int llread(unsigned char *packet)
     {
         data[i - 7] = aux[i];
     }
-
     // Write the data in the file
     FILE *file = fopen("pengu.gif", "wb+");
     fwrite(data, sizeof(unsigned char), sizeof(data), file);
     fclose(file);*/
 
-    //return totalReadBytes;
+    return totalReadBytes;
 }
 
 ////////////////////////////////////////////////
