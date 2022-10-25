@@ -30,7 +30,7 @@ void setupPorts(LinkLayer connectionParameters)
 
     newtio.c_lflag = 0;
     newtio.c_cc[VTIME] = 0;
-    newtio.c_cc[VMIN] = 0;
+    newtio.c_cc[VMIN] = 1;
     tcflush(fd, TCIOFLUSH);
 
     // Set new port settings
@@ -302,8 +302,6 @@ void alarmHandler(int signal)
 {
     alarmEnabled = FALSE;
     alarmCount++;
-
-    //printf("[LOG] TIMEOUT!\n");
 }
 
 unsigned char getCvalue(){
@@ -484,7 +482,7 @@ int llwrite(const unsigned char *buf, int bufSize)
         printf("[LOG] Waiting for confirmation.\n");
         // Send the Info frame (How to get alarm seetings?)
         totalWrittenBytes = write(fd, finalPacket, finalpacketSize);
-
+        printf("SIZE_--------------------------------------- %d\n",finalpacketSize);
         // Wait until bytes are written to the port
         sleep(1);
         
@@ -514,51 +512,27 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    return read(fd, packet, PAYLOAD + 9);
-
-    /*unsigned char buf[2];
+    unsigned char buf[2];
     int state = START;
+    int i = 0;
     int connected = FALSE;
-
-    while (state != STOP && connected == FALSE)
+    unsigned char holder[PAYLOAD + 10];
+    
+    while (i < PAYLOAD + 10)
     {
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
-        if (bytes_read != 0)
+        if (bytes_read > 0)
         {
-            switch (state)
-            {
-            case START:
-                if (!next_State(char_received, F, FLAG_RCV, &state))
-                    state = START;
-                break;
-            case FLAG_RCV:
-                if (!(next_State(char_received, A_W, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
-                    state = START;
-                break;
-            case A_RCV:
-                if (!(next_State(char_received, SET, C_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
-                    state = START;
-                break;
-            case C_RCV:
-                if (!(next_State(char_received, BCC1_SET, BCC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
-                    state = START;
-                break;
-            case BCC_OK:
-                if (!next_State(char_received, F, STOP, &state))
-                    state = START;
-                else
-                {
-                    printf("[LOG] Writter Connected.\n");
-                    connected = TRUE;
-                    write(fd, _UA, 5);
-                }
-                break;
-            default:
-                break;
-            }
+            holder[i] = char_received; 
+            printf("data[%i]: %x \n ",i, char_received);
+            i++;
         }
-    }*/
+    }
+    FILE *file = fopen("pengu.gif", "wb");
+    fwrite(holder, sizeof(unsigned char), sizeof(holder), file);
+    fclose(file);
+    return 1;
 }
 
 ////////////////////////////////////////////////

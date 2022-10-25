@@ -90,16 +90,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     printf("[LOG] Reader Ready.\n");
     unsigned char buf[PAYLOAD + 9];
   
-    for (int i = 0; i < 2; i++)
-    {
+ 
       int x = llread(buf);
-      //printf("[PACKET] ");
-      for (int j = 0; j < x; j++)
-      {
-      //  printf("%x", buf[j]);
-      }
-      printf("\n");
-    }
+ 
+      printf("PRINTED!\n");
+    
   }
   llclose(0);
 }
