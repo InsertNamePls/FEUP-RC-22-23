@@ -54,8 +54,10 @@ void apWrite(FILE *pengu)
   unsigned char packet[PAYLOAD + 3];
   int bytesRead = 0;
   int totalBytesRead = 0;
+  //for(int i=0;i<2;i++)
   while ((bytesRead = fread(buffer, 1, PAYLOAD, pengu)) > 0)
   {
+    bytesRead = fread(buffer, 1, PAYLOAD, pengu);
     packet[0] = 0; // control field
     packet[1] = 1; // sequence number
     packet[2] = 2; // number of octects
@@ -94,11 +96,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     printf("[LOG] Reader Ready.\n");
     unsigned char buf[PAYLOAD + 9];
 
-    for(int i=0;i<20;i++){
-      int x = llread(buf);
+    for(int i=0;i<18;i++){
+      int bytes_read = llread(buf);
       //printf("PRINTED!\n");
     }
   }
   
-  llclose(0);
+  //llclose(0);
 }

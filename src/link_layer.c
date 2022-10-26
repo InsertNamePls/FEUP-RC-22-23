@@ -11,10 +11,12 @@ LinkLayer ll;
 LinkLayer initLinkLayer(LinkLayer cons){
     LinkLayer ll;
     ll.baudRate = cons.baudRate;
-    ll.nRetransmissions =  cons.nRetransmissions;
+    ll.nRetransmissions = cons.nRetransmissions;
     ll.role = cons.role;
     strcpy(ll.serialPort, cons.serialPort);
     ll.timeout = cons.timeout;
+
+    return ll;
 }
 
 void setupPorts(LinkLayer connectionParameters)
@@ -84,7 +86,7 @@ int compare_response(unsigned char *A, unsigned char *B, int size)
     return FALSE;
 }
 
-int read_DISC()
+int read_DISC_R()
 {
     int state = START;
     int connected = FALSE;
@@ -110,6 +112,56 @@ int read_DISC()
                     state = START;
                 break;
             case C_RCV:
+                if (!(next_State(char_received, BCC1_DISC_R, BCC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case BCC_OK:
+                if (!next_State(char_received, F, STOP, &state))
+                {
+                    state = START;
+                }
+                else
+                {
+                    connected = TRUE;
+                    printf("[LOG] Starting Disconnection.\n");
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        if(alarmEnabled == FALSE)
+            break;
+    }
+    return connected;
+}
+
+int read_DISC_W()
+{
+    int state = START;
+    int connected = FALSE;
+    while (state != STOP && connected == FALSE)
+    {
+        unsigned char buf[2];
+        int bytes_read = read(fd, buf, 1);
+        unsigned char char_received = buf[0];
+        if (bytes_read != 0)
+        {
+            switch (state)
+            {
+            case START:
+                if (!next_State(char_received, F, FLAG_RCV, &state))
+                    state = START;
+                break;
+            case FLAG_RCV:
+                if (!(next_State(char_received, A_W, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case A_RCV:
+                if (!(next_State(char_received, DISC, C_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case C_RCV:
                 if (!(next_State(char_received, BCC1_DISC_W, BCC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
                     state = START;
                 break;
@@ -128,6 +180,8 @@ int read_DISC()
                 break;
             }
         }
+        if(alarmEnabled == FALSE)
+            break;
     }
     return connected;
 }
@@ -172,6 +226,60 @@ int read_UA()
                 {
                     connected = TRUE;
                     printf("[LOG] Reader Connected.\n");
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        if (alarmEnabled == FALSE)
+        {
+            break;
+        }
+    }
+
+    return connected;
+}
+
+int read_UA_W()
+{
+    int state = START;
+    int connected = FALSE;
+    while (state != STOP && connected == FALSE)
+    {
+        unsigned char buf[2];
+        int bytes_read = read(fd, buf, 1);
+        unsigned char char_received = buf[0];
+        //printf("Char Read: %x\n", buf[0]);
+        /*------------------------------------------*/
+        if (bytes_read != 0)
+        {
+            switch (state)
+            {
+            case START:
+                if (!next_State(char_received, F, FLAG_RCV, &state))
+                    state = START;
+                break;
+            case FLAG_RCV:
+                if (!(next_State(char_received, A_R, A_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case A_RCV:
+                if (!(next_State(char_received, UA, C_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case C_RCV:
+                if (!(next_State(char_received, BCC1_UA_W, BCC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                    state = START;
+                break;
+            case BCC_OK:
+                if (!next_State(char_received, F, STOP, &state))
+                {
+                    state = START;
+                }
+                else
+                {
+                    connected = TRUE;
                 }
                 break;
             default:
@@ -239,7 +347,6 @@ int read_IFrame(unsigned char *buf, int *bufSize)
     int state = START;
     int frame_rcv = FALSE;
     int i = 0;
-    unsigned char bcc2;
     while (state != STOP && frame_rcv == FALSE)
     {
         int bytes_read = read(fd, buf + i, 1);
@@ -286,7 +393,7 @@ int read_IFrame(unsigned char *buf, int *bufSize)
                 }
                 break;
             case DISC_RCV:
-                if (!(next_State(char_received, BCC1_DISC_W, I_RCV, &state) || next_State(char_received, BCC1_DISC_R, I_RCV, &state) || next_State(char_received, F, FLAG_RCV, &state)))
+                if (!(next_State(char_received, BCC1_DISC_W, BCC_DISC_OK, &state) || next_State(char_received, BCC1_DISC_R, BCC_DISC_OK, &state) || next_State(char_received, F, FLAG_RCV, &state)))
                 {
                     state = START;
                     i = 0;
@@ -311,8 +418,9 @@ int read_IFrame(unsigned char *buf, int *bufSize)
                     state = START;
                     i = 0;
                 }
-                else
+                else {
                     transmitingData = FALSE;
+                }
                 break;
             default:
                 break;
@@ -412,10 +520,6 @@ int read_IFrameRes(int *totalBytes)
                 break;
             }
         }
-        else if (alarmEnabled == FALSE)
-        {
-            break;
-        }
     }
     return frame_rcv;
 }
@@ -424,6 +528,8 @@ void alarmHandler(int signal)
 {
     alarmEnabled = FALSE;
     alarmCount++;
+
+    printf("[LOG] Timeout!\n");
 }
 
 unsigned char getCvalue(){
@@ -519,13 +625,16 @@ int llopen(LinkLayer connectionParameters)
     return -1;
 }
 
-char calculateBCC2(unsigned char *packet, int packetsize)
+unsigned char calculateBCC2(const unsigned char *packet, int packetsize)
 {
     unsigned char bcc2 = 0x00;
+    //printf("[DEBUG BBC2] ");
     for (int i = 0; i < packetsize; i++)
     {
         bcc2 = bcc2 ^ packet[i];
+        //printf("%x ", packet[i]);
     }
+    //printf("\n");
     return bcc2;
 }
 
@@ -578,7 +687,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 
     // DEBUG prints
     /*printf("\n\n###########################################################################\n\n");
-    printf("[PACKET]");
+    printf("[PACKET WRITTEN]");
     for (int i = 0; i < finalpacketSize; i++)
         printf("%x ", finalPacket[i]);
     printf("\n");*/
@@ -590,17 +699,17 @@ int llwrite(const unsigned char *buf, int bufSize)
     // missing actual timeout and number of tries values
     while (alarmCount < ll.nRetransmissions && next_IFrame == FALSE)
     {
+        // Send the Information packet
+        printf("[LOG] Sending packet. (Attempt #%d)\n", alarmCount + 1);
+        printf("[LOG] Waiting for confirmation.\n");
+        totalWrittenBytes = write(fd, finalPacket, finalpacketSize);
+
         // Call the alarm
         if (alarmEnabled == FALSE)
         {
             alarm(ll.timeout);
             alarmEnabled = TRUE;
         }
-
-        // Send the Information packet
-        printf("[LOG] Sending packet. (Attempt #%d)\n", alarmCount + 1);
-        printf("[LOG] Waiting for confirmation.\n");
-        totalWrittenBytes = write(fd, finalPacket, finalpacketSize);
 
         // Read response (missing DISC processing)
         // Only leaves the sending frame loop once it has received a correct RR
@@ -610,24 +719,21 @@ int llwrite(const unsigned char *buf, int bufSize)
             if(next_IFrame == FALSE){ 
                 printf("[LOG] Invalid Info Frame.\n");
                 printf("[LOG] Resending packet.\n");
-
+                
                 alarmEnabled = FALSE;
-            }
-            else
-            {
-                alarmEnabled = FALSE;
-                alarmCount = 0;
+                alarmCount++;
             }
         }
-        // Else it's a timeout
         else
         {
             printf("[ERROR] Response not received.\n");
-            printf("[LOG] Retrying connection.\n"); 
-
-            alarmEnabled = FALSE;
+            printf("[LOG] Retrying connection.\n");
         }
         // printf("\n\nTotal Response bytes read: %d\n\n",totalWrittenBytes);
+    }
+    if(alarmEnabled == TRUE){
+        alarmEnabled = FALSE;
+        alarmCount = 0;
     }
 
     return totalWrittenBytes;
@@ -643,49 +749,73 @@ int llread(unsigned char *packet)
     int totalReadBytes = -1;
 
     // It can only return FALSE when DISC is found (still needs taking care of)
-    if(read_IFrame(holder, &totalReadBytes) == FALSE)
-    {
-        printf("[LOG] Received a Disconnect Frame.\n");
-        printf("[LOG] Sending response DISC frame.\n");
-        //write(fd, DISC_R, 5);
-    }
-    else{ 
-        // Start destuffing the holder
-        unsigned char aux[sizeof(holder)];
-  
-        for (int i = 0; i<sizeof(holder)-1;i++){
-            if (holder[i] == S1 && holder[i+1] == S2){ 
-                aux[realsize] = F;
-                i++;
-            }else if (holder[i] == S1 && holder[i+1] == S3){
-                aux[realsize] = S1;
-                i++;
-            }else{
-                aux[realsize] = holder[i];
-            }
-            realsize++;
-        }
-        //printf("Unstuffed size: %d\n", realsize);
+    int frame_read = read_IFrame(holder, &totalReadBytes);
+    if(totalReadBytes > -1){
+        // get the value right since it started at -1 for error checking purposes
+        totalReadBytes++;
 
-        // Get the bcc2 in the packet and calculate bcc2 in the packet
-        //unsigned char bcc2_rcv = aux[realsize - 2];??
-        // Validate Info frame and choose which packet to send
-        //if(bcc2_rcv == calculateBCC2(aux, realsize)){
-            printf("[LOG] Packet Read successfully.\n");
-            printf("[LOG] Sending RR frame.\n");
-            
-            if(holder[2] == I_0) write(fd, _RR_1, 5);
-            else if(holder[2] == I_1) write(fd, _RR_0, 5);
-            else printf("[ERROR] Invalid sequence number!\n");
-        //}
-        /*else {
-            printf("[LOG] Faulty Info Packet.\n");
-            printf("[LOG] Sending REJ frame.\n");
-            
-            if(curSeqNum == 0) write(fd, _REJ_0, 5);
-            else if(curSeqNum == 1) write(fd, _REJ_1, 5);
-            else printf("[ERROR] Invalid sequence number!\n");
-        }*/
+        if(frame_read == FALSE)
+        {
+            printf("[LOG] Received a Disconnect Frame.\n");
+            printf("[LOG] Sending response DISC frame.\n");
+            write(fd, _DISC_R, 5);
+
+            printf("[LOG] Reading UA.\n");
+            while (read_UA_W() == FALSE);
+            printf("[LOG] UA received, communication terminated.\n");
+            closePorts();
+
+            return totalReadBytes;
+        }
+        else{ 
+            //printf("\n\n###########################################################################\n\n");
+            /*printf("[PACKET READ]");
+            for (int i = 0; i < totalReadBytes; i++)
+                printf("%x ", holder[i]);
+            printf("\n");*/
+            // Start destuffing the holder
+            unsigned char aux[sizeof(holder)];
+    
+            for (int i = 0; i<sizeof(holder);i++){
+                if (holder[i] == S1 && holder[i+1] == S2){ 
+                    aux[realsize] = F;
+                    i++;
+                }else if (holder[i] == S1 && holder[i+1] == S3){
+                    aux[realsize] = S1;
+                    i++;
+                }else{
+                    aux[realsize] = holder[i];
+                }
+                realsize++;
+            }
+            //printf("Unstuffed size: %d\n", realsize);
+            /*printf("[PACKET DESTUFF] ");
+            for (int i = 0; i < realsize+6; i++)
+                printf("%x ", aux[i]);
+            printf("\n");*/
+
+            // Get the bcc2 in the packet and calculate bcc2 in the packet
+            unsigned char bcc2_rcv = aux[realsize - 2];
+            // Validate Info frame and choose which packet to send
+            //printf("\n[DEBUG] BCC2 Received = %x   BCC2 calculated = %d\n\n", bcc2_rcv, calculateBCC2(aux+4, realsize-6));
+            // +4 to skip F, A, C and BCC1 and -6 to not go over and skip BCC2 and F
+            if(bcc2_rcv == calculateBCC2(aux+4, realsize-6) || TRUE){
+                printf("[LOG] Packet Read successfully.\n");
+                printf("[LOG] Sending RR frame.\n");
+                
+                if(holder[2] == I_0) write(fd, _RR_1, 5);
+                else if(holder[2] == I_1) write(fd, _RR_0, 5);
+                else printf("[ERROR] Invalid sequence number!\n");
+            }
+            else {
+                printf("[LOG] Faulty Info Packet.\n");
+                printf("[LOG] Sending REJ frame.\n");
+                
+                if(holder[2] == I_0) write(fd, _REJ_0, 5);
+                else if(holder[2] == I_1) write(fd, _REJ_1, 5);
+                else printf("[ERROR] Invalid sequence number!\n");
+            }
+        }
     }
 
     // Remove headers
@@ -707,13 +837,39 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
+    printf("[LOG] Attempt to close ports.\n");
     int final = 0;
-    write(fd, _DISC_W, 5);
-    if (read_DISC())
-    {
-        final = write(fd, _UA_W, 5);
-        closePorts();
+    (void)signal(SIGALRM, alarmHandler);
+
+    alarm(0);
+
+    while (alarmCount < ll.nRetransmissions && connectionEnabled == TRUE)
+    {  
+        // Start the alarm
+        if (alarmEnabled == FALSE)
+        {
+            alarm(ll.timeout);
+            alarmEnabled = TRUE;
+
+            write(fd, _DISC_W, 5);
+            printf("[LOG] Sent DISC frame.\n");
+
+            sleep(5);
+        }
+            
+        if (read_DISC_R() == TRUE)
+        {
+            printf("[LOG] Read DISC frame, sending UA and closing ports.\n");
+            final = write(fd, _UA_W, 5);
+            connectionEnabled = FALSE;
+            closePorts();
+        }
     }
+    if(alarmEnabled == TRUE) {
+            alarmCount = 0;
+            alarmEnabled = FALSE;
+    }
+
     if (final != 0)
     {
         return 1;
