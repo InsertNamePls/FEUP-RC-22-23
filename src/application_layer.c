@@ -62,7 +62,8 @@ void apWrite(FILE *pengu)
     packet[0] = 0; /// TODO control field
     packet[1] = 1; // sequence number
     packet[2] = 2; // number of octects
-    memcpy(packet + 3, buffer, sizeof(packet));
+    //memcpy(packet + 3, buffer, sizeof(packet));
+    memcpy(packet + 3, buffer, sizeof(buffer));
     llwrite(packet, sizeof(packet));
     totalBytesRead += bytesRead;
   }
@@ -101,7 +102,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     FILE *file = fopen(filename, "wb");
     //printf("FILESEIZE/PAYLOAD = %d\n", file_size/PAYLOAD);
     
-    for(int i=0; i<18; i++){
+    for(int i=0; i<20; i++){
       int bytes_read = llread(buf);
           //if (bytes_read == 5) break;
       fwrite(buf, sizeof(unsigned char), sizeof(buf), file);
