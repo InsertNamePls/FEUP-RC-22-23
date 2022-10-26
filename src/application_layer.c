@@ -13,6 +13,9 @@
 #include "application_layer.h"
 #include "link_layer.h"
 
+struct stat file_info;
+int file_size;
+
 LinkLayerRole getRole(const char *role)
 {
   if (!strcmp(role, "tx"))
@@ -87,8 +90,15 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   if (cons.role == LlTx)
   {
     FILE *pengu = getFile(filename);
-    if (pengu != NULL)
+    if (pengu != NULL){
+      stat(filename, &file_info);
+      file_size = file_info.st_size;
+
+      //printf("FILESIZE: %d\n", file_size);
+      
+      
       apWrite(pengu);
+    }
     llclose(1);
   }
   else if (cons.role == LlRx)
@@ -96,7 +106,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     printf("[LOG] Reader Ready.\n");
     unsigned char buf[PAYLOAD + 9];
 
-    for(int i=0;i<18;i++){
+    for(int i=0;i<file_size/PAYLOAD;i++){
       int bytes_read = llread(buf);
       //printf("PRINTED!\n");
     }
