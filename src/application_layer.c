@@ -54,28 +54,22 @@ void apWrite(FILE *pengu)
   unsigned char packet[PAYLOAD + 3];
   int bytesRead = 0;
   int totalBytesRead = 0;
-  //for(int i=0;i<2;i++)
   while ((bytesRead = fread(buffer, 1, PAYLOAD, pengu)) > 0)
   {
     bytesRead = fread(buffer, 1, PAYLOAD, pengu);
-    packet[0] = 0; // control field
+    packet[0] = 0; /// TODO control field
     packet[1] = 1; // sequence number
     packet[2] = 2; // number of octects
     memcpy(packet + 3, buffer, sizeof(packet));
-
-    // need byte stuffing
     llwrite(packet, sizeof(packet));
-
     totalBytesRead += bytesRead;
   }
-
   fclose(pengu);
 }
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
-
   printf("[PROTOCOL START]\n");
   LinkLayer cons = getParams(serialPort, role, baudRate, nTries, timeout);
   if (llopen(cons) < 0)
@@ -94,13 +88,21 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   else if (cons.role == LlRx)
   {
     printf("[LOG] Reader Ready.\n");
-    unsigned char buf[PAYLOAD + 9];
-
-    for(int i=0;i<18;i++){
+    unsigned char buf[PAYLOAD];
+    FILE *file = fopen("pengu.gif", "wb");
+    for (int i = 0; i < 18; i++)
+    {
       int bytes_read = llread(buf);
-      //printf("PRINTED!\n");
+
+      for (int i = 0; i < sizeof(buf); i++)
+        printf("%x ", buf[i]);
+      printf("\n");     
+      fwrite(buf, sizeof(unsigned char), sizeof(buf), file);
+     
     }
+     fclose(file);
+    printf("PRINTED!\n");
   }
-  
-  //llclose(0);
+
+  // llclose(0);
 }
