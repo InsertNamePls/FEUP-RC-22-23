@@ -666,6 +666,12 @@ int llwrite(const unsigned char *buf, int bufSize)
     unsigned char auxBuffer[bufSize * 2];
     int auxBufferIndex = 0;
     char bcc2 = calculateBCC2(buf, bufSize);
+    /*printf("[PACKET RAW] ");
+    for (int i = 0; i < bufSize; i++)
+    {
+        printf("%x ", buf[i]);
+    }
+    printf("\n");*/
     for (int i = 0; i < bufSize; i++)
     {
         if (buf[i] == F)
@@ -762,7 +768,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    unsigned char holder[PAYLOAD + 10];
+    unsigned char holder[PAYLOAD + 9];
     unsigned char aux[sizeof(holder)];
     unsigned char data[PAYLOAD];
 
@@ -773,7 +779,8 @@ int llread(unsigned char *packet)
     int frame_read = read_IFrame(holder, &totalReadBytes);
     if (totalReadBytes > -1)
     {
-        // get the value right since it started at -1 for error checking purposes
+        // printf("---------CONTROL.-1..........\n");
+        //  get the value right since it started at -1 for error checking purposes
         totalReadBytes++;
         if (frame_read == FALSE)
         {
@@ -783,24 +790,24 @@ int llread(unsigned char *packet)
             write(fd, _DISC_R, 5);
 
             printf("[LOG] Reading UA.\n");
-            while (read_UA_W() == FALSE);             ;
+            read_UA_W();
             printf("[LOG] UA received, communication terminated.\n");
             closePorts();
 
-            return totalReadBytes;
+            
         }
         else
         {
             // printf("\n\n###########################################################################\n\n");
-            /*printf("[PACKET READ]");
+            /*printf("[PACKET READ BEFORE DESTUFF]");
             for (int i = 0; i < totalReadBytes; i++)
                 printf("%x ", holder[i]);
             printf("\n");*/
 
             // Start destuffing the holder
-            
+            // printf("---------CONTROL.0..........\n");
 
-            for (int i = 0; i < sizeof(holder); i++)
+            for (int i = 0; i < totalReadBytes; i++)
             {
                 if (holder[i] == S1 && holder[i + 1] == S2)
                 {
@@ -818,18 +825,43 @@ int llread(unsigned char *packet)
                 }
                 realsize++;
             }
+            aux[realsize] = F;
+            unsigned char teste_[realsize];
+            for (int i = 0; i < realsize; i++)
+                teste_[i] = aux[i];
+
             // printf("Unstuffed size: %d\n", realsize);
             /*printf("[PACKET DESTUFF] ");
-            for (int i = 0; i < realsize+6; i++)
-                printf("%x ", aux[i]);
+            for (int i = 0; i < realsize; i++)
+                printf("%x ", teste_[i]);
             printf("\n");*/
 
             // Get the bcc2 in the packet and calculate bcc2 in the packet
-            unsigned char bcc2_rcv = aux[realsize - 2];
+            unsigned char bcc2_rcv = teste_[realsize - 2];
+            unsigned char bcc2aux[realsize - 6];
+            for (int i = 0; i < realsize - 6; i++)
+            {
+                bcc2aux[i] = teste_[i + 4];
+                //printf("%x ", bcc2aux[i]);
+            }
+            //printf("\n");
+
+            // Remove headers
+            //printf("\n[DEBUG] BCC2 Received = %x   BCC2 calculated = %x\n\n", bcc2_rcv, calculateBCC2(bcc2aux,realsize - 6));
+
+            for (int i = 7; i < realsize - 2; i++)
+            {
+                packet[i - 7] = teste_[i];
+            }
+
+            /*printf("[PACKET] ");
+            for (int i = 0; i < realsize-9; i++)
+                printf("%x ", packet[i]);
+            printf("\n");*/
+
             // Validate Info frame and choose which packet to send
-            // printf("\n[DEBUG] BCC2 Received = %x   BCC2 calculated = %d\n\n", bcc2_rcv, calculateBCC2(aux+4, realsize-6));
             // +4 to skip F, A, C and BCC1 and -6 to not go over and skip BCC2 and F
-            if (bcc2_rcv == calculateBCC2(aux + 4, realsize - 6) || TRUE)
+            if (bcc2_rcv == calculateBCC2(bcc2aux,realsize - 6))
             {
                 printf("[LOG] Packet Read successfully.\n");
                 printf("[LOG] Sending RR frame.\n");
@@ -856,19 +888,10 @@ int llread(unsigned char *packet)
         }
     }
 
-    // Remove headers
+    /*
+        // Write the data in the file
 
-    for (int i = 7; i < realsize - 2; i++)
-    {
-        packet[i - 7] = aux[i];
-    }
-
-
-
-/*
-    // Write the data in the file
-   
-    */
+        */
 
     return totalReadBytes;
 }
@@ -894,8 +917,6 @@ int llclose(int showStatistics)
 
             write(fd, _DISC_W, 5);
             printf("[LOG] Sent DISC frame.\n");
-
-            sleep(5);
         }
 
         if (read_DISC_R() == TRUE)

@@ -59,7 +59,6 @@ void apWrite(FILE *pengu)
   int totalBytesRead = 0;
   while ((bytesRead = fread(buffer, 1, PAYLOAD, pengu)) > 0)
   {
-    bytesRead = fread(buffer, 1, PAYLOAD, pengu);
     packet[0] = 0; /// TODO control field
     packet[1] = 1; // sequence number
     packet[2] = 2; // number of octects
@@ -88,8 +87,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
       stat(filename, &file_info);
       file_size = file_info.st_size;
 
-      //printf("FILESIZE: %d\n", file_size);
-      
+      printf("FILESIZE: %d\n", file_size);
       
       apWrite(pengu);
     }
@@ -98,19 +96,18 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   else if (cons.role == LlRx)
   {
     printf("[LOG] Reader Ready.\n");
-    unsigned char buf[PAYLOAD + 9];
 
     unsigned char buf[PAYLOAD];
-    FILE *file = fopen("pengu.gif", "wb");
-    for(int i=0; i<file_size/PAYLOAD; i++){
+    FILE *file = fopen(filename, "wb");
+    //printf("FILESEIZE/PAYLOAD = %d\n", file_size/PAYLOAD);
     
+    for(int i=0; i<18; i++){
       int bytes_read = llread(buf);
-    
+          //if (bytes_read == 5) break;
       fwrite(buf, sizeof(unsigned char), sizeof(buf), file);
-     
     }
+    
      fclose(file);
-    printf("PRINTED!\n");
   }
 
   // llclose(0);
