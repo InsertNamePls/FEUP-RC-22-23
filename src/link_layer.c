@@ -196,8 +196,6 @@ int read_UA()
         unsigned char buf[2];
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
-        // printf("Char Read: %x\n", buf[0]);
-        /*------------------------------------------*/
         if (bytes_read != 0)
         {
             switch (state)
@@ -251,8 +249,6 @@ int read_UA_W()
         unsigned char buf[2];
         int bytes_read = read(fd, buf, 1);
         unsigned char char_received = buf[0];
-        // printf("Char Read: %x\n", buf[0]);
-        /*------------------------------------------*/
         if (bytes_read != 0)
         {
             switch (state)
@@ -456,7 +452,6 @@ int read_IFrameRes(int *totalBytes)
     {
         int bytes_read = read(fd, buf, 1);
         *totalBytes += bytes_read;
-        // printf("\n\nTotal Response bytes read: %d\n\n",*totalBytes);
         unsigned char char_received = buf[0];
         if (bytes_read != 0)
         {
@@ -665,7 +660,7 @@ int llwrite(const unsigned char *buf, int bufSize)
     // Stuffing frames to be sent
     unsigned char auxBuffer[bufSize * 2];
     int auxBufferIndex = 0;
-    char bcc2 = calculateBCC2(buf, bufSize);
+    unsigned char bcc2 = calculateBCC2(buf, bufSize);
     /*printf("[PACKET RAW] ");
     for (int i = 0; i < bufSize; i++)
     {
@@ -693,8 +688,23 @@ int llwrite(const unsigned char *buf, int bufSize)
         auxBufferIndex++;
     }
 
+    // need to stuff bcc2
+    //printf("[DEBUG] bcc2 = %x\n", bcc2);
+    if (bcc2 == F) {//printf("IT ACTUALLY HAPPEND\n");
+        auxBuffer[auxBufferIndex] = S1;
+        auxBufferIndex++;
+        auxBuffer[auxBufferIndex] = S2;
+    } else if (bcc2 == S1){//printf("IT ACTUALLY HAPPEND\n");
+        auxBuffer[auxBufferIndex] = S1;
+        auxBufferIndex++;
+        auxBuffer[auxBufferIndex] = S3;
+    } else {
+        auxBuffer[auxBufferIndex] = bcc2;
+    }
+    auxBufferIndex++;
+
     // Preparing final packet for info frame
-    int finalpacketSize = auxBufferIndex + 6;
+    int finalpacketSize = auxBufferIndex + 5;
     unsigned char finalPacket[finalpacketSize];
     // Assign Header
     finalPacket[0] = F;
@@ -704,7 +714,7 @@ int llwrite(const unsigned char *buf, int bufSize)
     // Copy buffer data to packet
     memcpy(finalPacket + 4, auxBuffer, auxBufferIndex);
     // Complete packet with trailer
-    finalPacket[finalpacketSize - 2] = bcc2; // need to stuff bcc2;
+    //finalPacket[finalpacketSize - 2] = bcc2; 
     finalPacket[finalpacketSize - 1] = F;
 
     // DEBUG prints
@@ -721,14 +731,15 @@ int llwrite(const unsigned char *buf, int bufSize)
     // missing actual timeout and number of tries values
     while (alarmCount < ll.nRetransmissions && next_IFrame == FALSE)
     {
-        // Send the Information packet
-        printf("[LOG] Sending packet. (Attempt #%d)\n", alarmCount + 1);
-        printf("[LOG] Waiting for confirmation.\n");
-        totalWrittenBytes = write(fd, finalPacket, finalpacketSize);
-
         // Call the alarm
         if (alarmEnabled == FALSE)
         {
+            // Send the Information packet
+            printf("[LOG] Sending packet. (Attempt #%d)\n", alarmCount + 1);
+            printf("[LOG] Waiting for confirmation.\n");
+
+            totalWrittenBytes = write(fd, finalPacket, finalpacketSize);
+
             alarm(ll.timeout);
             alarmEnabled = TRUE;
         }
@@ -743,6 +754,8 @@ int llwrite(const unsigned char *buf, int bufSize)
                 printf("[LOG] Invalid Info Frame.\n");
                 printf("[LOG] Resending packet.\n");
 
+                //Need to reset alarm and then reset variables
+                alarm(0);
                 alarmEnabled = FALSE;
                 alarmCount++;
             }
@@ -768,9 +781,10 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    unsigned char holder[PAYLOAD + 9];
-    unsigned char aux[sizeof(holder)];
-    unsigned char data[PAYLOAD];
+    //unsigned char holder[PAYLOAD + 9];
+    unsigned char *holder = (unsigned char*)malloc(sizeof(unsigned char*)*(PAYLOAD+9));
+    unsigned char aux[PAYLOAD + 9];
+    //unsigned char data[PAYLOAD];
 
     int realsize = 0;
     int totalReadBytes = -1;
@@ -779,7 +793,6 @@ int llread(unsigned char *packet)
     int frame_read = read_IFrame(holder, &totalReadBytes);
     if (totalReadBytes > -1)
     {
-        // printf("---------CONTROL.-1..........\n");
         //  get the value right since it started at -1 for error checking purposes
         totalReadBytes++;
         if (frame_read == FALSE)
@@ -793,20 +806,15 @@ int llread(unsigned char *packet)
             read_UA_W();
             printf("[LOG] UA received, communication terminated.\n");
             closePorts();
-
-            
         }
         else
         {
             // printf("\n\n###########################################################################\n\n");
-            /*printf("[PACKET READ BEFORE DESTUFF]");
+            /*printf("[PACKET READ BEFORE DESTUFF]\n");
             for (int i = 0; i < totalReadBytes; i++)
-                printf("%x ", holder[i]);
-            printf("\n");*/
+                printf("holder[%d] = %x\n", i, holder[i]);*/
 
             // Start destuffing the holder
-            // printf("---------CONTROL.0..........\n");
-
             for (int i = 0; i < totalReadBytes; i++)
             {
                 if (holder[i] == S1 && holder[i + 1] == S2)
@@ -814,7 +822,7 @@ int llread(unsigned char *packet)
                     aux[realsize] = F;
                     i++;
                 }
-                else if (holder[i] == S1 && holder[i + 1] == S3)
+                else if (holder[i] == S1 && holder[i + 1] == S3)    
                 {
                     aux[realsize] = S1;
                     i++;
@@ -825,7 +833,7 @@ int llread(unsigned char *packet)
                 }
                 realsize++;
             }
-            aux[realsize] = F;
+
             unsigned char teste_[realsize];
             for (int i = 0; i < realsize; i++)
                 teste_[i] = aux[i];
@@ -842,13 +850,9 @@ int llread(unsigned char *packet)
             for (int i = 0; i < realsize - 6; i++)
             {
                 bcc2aux[i] = teste_[i + 4];
-                //printf("%x ", bcc2aux[i]);
             }
-            //printf("\n");
 
             // Remove headers
-            //printf("\n[DEBUG] BCC2 Received = %x   BCC2 calculated = %x\n\n", bcc2_rcv, calculateBCC2(bcc2aux,realsize - 6));
-
             for (int i = 7; i < realsize - 2; i++)
             {
                 packet[i - 7] = teste_[i];
@@ -888,12 +892,9 @@ int llread(unsigned char *packet)
         }
     }
 
-    /*
-        // Write the data in the file
+    free(holder);
 
-        */
-
-    return totalReadBytes;
+    return realsize-9;
 }
 
 ////////////////////////////////////////////////

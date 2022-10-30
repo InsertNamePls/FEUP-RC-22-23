@@ -54,18 +54,26 @@ FILE *getFile(const char *filename)
 void apWrite(FILE *pengu)
 {
   unsigned char buffer[PAYLOAD];
-  unsigned char packet[PAYLOAD + 3];
   int bytesRead = 0;
   int totalBytesRead = 0;
+  //int i=0;
   while ((bytesRead = fread(buffer, 1, PAYLOAD, pengu)) > 0)
   {
+    /*printf("[INITIAL PACKET #%d] ", i);
+      for(int j=0;j<bytesRead;j++)
+        printf("%x ", buffer[j]);
+    printf("\n");*/
+
+    unsigned char packet[bytesRead + 3];
+
     packet[0] = 0; /// TODO control field
     packet[1] = 1; // sequence number
     packet[2] = 2; // number of octects
-    //memcpy(packet + 3, buffer, sizeof(packet));
-    memcpy(packet + 3, buffer, sizeof(buffer));
-    llwrite(packet, sizeof(packet));
+
+    memcpy(packet + 3, buffer, bytesRead);
+    llwrite(packet, bytesRead + 3);
     totalBytesRead += bytesRead;
+    //i++;
   }
   fclose(pengu);
 }
@@ -100,16 +108,20 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     unsigned char buf[PAYLOAD];
     FILE *file = fopen(filename, "wb");
-    //printf("FILESEIZE/PAYLOAD = %d\n", file_size/PAYLOAD);
-    
-    for(int i=0; i<20; i++){
-      int bytes_read = llread(buf);
-          //if (bytes_read == 5) break;
-      fwrite(buf, sizeof(unsigned char), sizeof(buf), file);
+
+    int bytes_read,i =0;
+    while((bytes_read = llread(buf)) > 0){
+
+      /*printf("BYTES READ: %d \n", bytes_read);
+      printf("[FINAL PACKET #%d] ", i);
+      for(int j=0;j<bytes_read;j++)
+        printf("%x ", buf[j]);
+      printf("\n");*/
+
+      fwrite(buf, sizeof(unsigned char), bytes_read, file);
+      i++;
     }
     
      fclose(file);
   }
-
-  // llclose(0);
 }
