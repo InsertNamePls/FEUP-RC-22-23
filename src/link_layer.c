@@ -781,9 +781,8 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    //unsigned char holder[PAYLOAD + 9];
-    unsigned char *holder = (unsigned char*)malloc(sizeof(unsigned char*)*(PAYLOAD+9));
-    unsigned char aux[PAYLOAD + 9];
+    unsigned char *holder = (unsigned char*)malloc(sizeof(unsigned char*)*(PAYLOAD+10));
+    unsigned char aux[PAYLOAD + 10];
     //unsigned char data[PAYLOAD];
 
     int realsize = 0;
@@ -812,7 +811,8 @@ int llread(unsigned char *packet)
             // printf("\n\n###########################################################################\n\n");
             /*printf("[PACKET READ BEFORE DESTUFF]\n");
             for (int i = 0; i < totalReadBytes; i++)
-                printf("holder[%d] = %x\n", i, holder[i]);*/
+                printf("%x ", holder[i]);
+            printf("\n");*/
 
             // Start destuffing the holder
             for (int i = 0; i < totalReadBytes; i++)
@@ -853,13 +853,13 @@ int llread(unsigned char *packet)
             }
 
             // Remove headers
-            for (int i = 7; i < realsize - 2; i++)
+            for (int i = 8; i < realsize - 2; i++)
             {
-                packet[i - 7] = teste_[i];
+                packet[i - 8] = teste_[i];
             }
 
             /*printf("[PACKET] ");
-            for (int i = 0; i < realsize-9; i++)
+            for (int i = 0; i < realsize-10; i++)
                 printf("%x ", packet[i]);
             printf("\n");*/
 
@@ -894,7 +894,7 @@ int llread(unsigned char *packet)
 
     free(holder);
 
-    return realsize-9;
+    return realsize-10;
 }
 
 ////////////////////////////////////////////////
