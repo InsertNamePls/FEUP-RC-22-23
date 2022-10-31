@@ -12,9 +12,10 @@
 #include "application_layer.h"
 #include "link_layer.h"
 
-struct stat file_info;
-int file_size;
 #define PAYLOAD 600 // mover isto para configs.h
+#define DATA 0x01
+#define START 0x02
+#define END 0x03
 
 LinkLayerRole getRole(const char *role)
 {
@@ -64,7 +65,7 @@ void apWrite(FILE *pengu)
     printf("\n");*/
 
     unsigned char dataPacket[bytesRead + 4];
-    dataPacket[0] = 1; // control field
+    dataPacket[0] = DATA; // control field
     dataPacket[1] = i % 255; // sequence number
     dataPacket[2] = bytesRead / 256; // number of octects (divisor)
     dataPacket[3] = bytesRead % 256; // number of octets (remainder)
@@ -82,6 +83,19 @@ void apWrite(FILE *pengu)
   fclose(pengu);
 }
 
+int createControlPacket(unsigned char* packet, unsigned char type, struct stat fInfo){
+  packet[0] = type;     // Control field
+  packet[1] = 0         // T field for file size
+  packet[2] = fInfo.st_size // L field for file size
+  //packet[3] =         // V field for file size
+  //packet[4+file_size] = 1         // T field for filename
+  //int len = 
+  //packet[5+file_size] = len       // L field for filename
+  //packet[6+file_size] =         // V field for filename
+
+  return -1;
+}
+
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
@@ -96,15 +110,21 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
   if (cons.role == LlTx)
   {
     // Transmitter starts transfering data:
-    // Data packets are created, sent by llwrite and validated by reader
+    // First a control packet is sent
+    // Then data packets are created, sent by llwrite and validated by reader
     FILE *pengu = getFile(filename);
     if (pengu != NULL){
+      struct stat file_info;
       stat(filename, &file_info);
-      file_size = file_info.st_size;
 
-      //printf("FILESIZE: %d\n", file_size);
+      unsigned char* controlPacket;
+      int ctrlPacketSize = createControlPacket(controlPacket, START, file_info);
+      //int bytes_written = llwrite(controlPacket, ctrlPacketSize);
       
       apWrite(pengu);
+
+      ctrlPacketSize = createControlPacket(controlPacket, END, file_info);
+      //bytes_written = llwrite(controlPacket, ctrlPacketSize);
     }
     llclose(1);
   }
@@ -118,6 +138,10 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     FILE *file = fopen(filename, "wb");
 
     int bytes_read;
+
+    //verify control packet start
+    //bytes_read = llread(buf);
+
     int i=0;
     while((bytes_read = llread(buf)) > 0){
 
