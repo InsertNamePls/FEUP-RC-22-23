@@ -16,6 +16,7 @@
 #define DATA 0x01
 #define START 0x02
 #define END 0x03
+#define MAX_FIELD_SIZE 255
 
 LinkLayerRole getRole(const char *role)
 {
@@ -79,21 +80,58 @@ void apWrite(FILE *pengu)
 
     totalBytesRead += bytesRead;
     i++;
+
+    //sleep(3);
   }
   fclose(pengu);
 }
 
-int createControlPacket(unsigned char* packet, unsigned char type, struct stat fInfo){
-  packet[0] = type;     // Control field
-  packet[1] = 0         // T field for file size
-  packet[2] = fInfo.st_size // L field for file size
-  //packet[3] =         // V field for file size
-  //packet[4+file_size] = 1         // T field for filename
-  //int len = 
-  //packet[5+file_size] = len       // L field for filename
-  //packet[6+file_size] =         // V field for filename
+int getBytesLength(int bytes){
+  int len, i = 1;
+  for(len = 0;i < bytes;len++){
+    i *= 255;
+  }
 
-  return -1;
+  return len;
+}
+
+// Return size of control packet or -1 in case of error
+int createControlPacket(unsigned char* packet, unsigned char type, struct stat fInfo, char* filename){
+  packet[0] = type;            // Control field
+  packet[1] = 0x00;            // T field for file size
+
+  // Get octets from filesize
+  int filesize = fInfo.st_size;
+  int fsizeLen = getBytesLength(filesize);
+  if(fsizeLen > MAX_FIELD_SIZE){
+    printf("[ERROR] File size cannot fit a byte.\n");
+    return -1;
+  }
+  packet[2] = fsizeLen;
+  
+  // Save bytes on packet
+  packet[3] = (unsigned)filesize & 0xFF; 
+  for(int i = 1, j=8; i < fsizeLen; j*=2, i++){
+    packet[3+i] = (unsigned)filesize >> j & 0xFF;
+  }
+
+  packet[3+fsizeLen] = 0x01;                       // T field for filename
+  int fnameLen = strlen(filename);
+  if(fnameLen > MAX_FIELD_SIZE){
+    printf("[ERROR] File size cannot fit a byte.\n");
+    return -1;
+  }
+  packet[4+fsizeLen] = fnameLen;                    // L field for filename
+  for(int i=0;i<fnameLen;i++){
+    packet[5+fsizeLen+i] = filename[i];
+  }
+
+  int finalsize = 5 + fsizeLen + fnameLen; 
+  if(finalsize <= PAYLOAD) return finalsize;
+  else {
+    printf("[ERROR] Control packet exceeds maximum size.\n");
+    return -1;
+  }
 }
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
@@ -117,14 +155,30 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
       struct stat file_info;
       stat(filename, &file_info);
 
-      unsigned char* controlPacket;
-      int ctrlPacketSize = createControlPacket(controlPacket, START, file_info);
-      //int bytes_written = llwrite(controlPacket, ctrlPacketSize);
+      unsigned char controlPacket[PAYLOAD];
+      int ctrlPacketSize = createControlPacket(controlPacket, START, file_info, filename);
+      int bytes_written;
+      /*printf("[CONTROL PACKET] ");
+      for(int i=0;i<ctrlPacketSize;i++){
+        printf("%x ", controlPacket[i]);
+      }
+      printf("\n");*/
+      if(bytes_written = llwrite(controlPacket, ctrlPacketSize) < 0) {
+        printf("[ERROR] Control packet start couldn't be sent.\n");
+        printf("[LOG] Aborting data transfer.\n");
+        llclose(0);
+        return;
+      }
       
       apWrite(pengu);
 
       ctrlPacketSize = createControlPacket(controlPacket, END, file_info);
-      //bytes_written = llwrite(controlPacket, ctrlPacketSize);
+      if(bytes_written = llwrite(controlPacket, ctrlPacketSize) < 0) {
+        printf("[ERROR] Control packet end couldn't be sent.\n");
+        printf("[LOG] Aborting data transfer.\n");
+        llclose(0);
+        return;
+      }
     }
     llclose(1);
   }
@@ -134,25 +188,34 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     //Data packets are read, validated and written on file in case of success
     printf("[LOG] Reader Ready.\n");
 
+    int bytes_read;
     unsigned char buf[PAYLOAD];
+    // Read start control packet
+    if((bytes_read = llread(buf)) < 0) {
+      printf("[ERROR] Couldn't read control packet.\n");
+      llclose(0);
+      return;
+    } else {
+      
+    }
+    
     FILE *file = fopen(filename, "wb");
 
-    int bytes_read;
-
     //verify control packet start
-    //bytes_read = llread(buf);
+    bytes_read = llread(buf);
 
     int i=0;
-    while((bytes_read = llread(buf)) > 0){
+    for(i = 0; i < 10968/PAYLOAD+2;i++){
 
       /*printf("BYTES READ: %d \n", bytes_read);
       printf("[FINAL PACKET #%d] ", i);
       for(int j=0;j<bytes_read;j++)
         printf("%x ", buf[j]);
       printf("\n");*/
-
-      fwrite(buf, sizeof(unsigned char), bytes_read, file);
-      i++;
+      bytes_read = llread(buf);
+      if(bytes_read >= 0) 
+        fwrite(buf, sizeof(unsigned char), bytes_read, file);
+      else printf("[ERROR] Llread didn't work as expected.\n");
     }
     
      fclose(file);

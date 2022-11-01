@@ -790,6 +790,7 @@ int llread(unsigned char *packet)
 
     // It can only return FALSE when DISC is found (still needs taking care of)
     int frame_read = read_IFrame(holder, &totalReadBytes);
+    printf("\n[DEBUG] TotalReadBytes = %d\n\n", totalReadBytes);
     if (totalReadBytes > -1)
     {
         //  get the value right since it started at -1 for error checking purposes
@@ -804,15 +805,18 @@ int llread(unsigned char *packet)
             printf("[LOG] Reading UA.\n");
             read_UA_W();
             printf("[LOG] UA received, communication terminated.\n");
+            
+            free(holder);
             closePorts();
+            return 0;
         }
         else
         {
             // printf("\n\n###########################################################################\n\n");
-            /*printf("[PACKET READ BEFORE DESTUFF]\n");
+            printf("[PACKET READ BEFORE DESTUFF]\n");
             for (int i = 0; i < totalReadBytes; i++)
                 printf("%x ", holder[i]);
-            printf("\n");*/
+            printf("\n\n");
 
             // Start destuffing the holder
             for (int i = 0; i < totalReadBytes; i++)
@@ -839,10 +843,10 @@ int llread(unsigned char *packet)
                 teste_[i] = aux[i];
 
             // printf("Unstuffed size: %d\n", realsize);
-            /*printf("[PACKET DESTUFF] ");
+            printf("[PACKET DESTUFF] ");
             for (int i = 0; i < realsize; i++)
                 printf("%x ", teste_[i]);
-            printf("\n");*/
+            printf("\n\n");
 
             // Get the bcc2 in the packet and calculate bcc2 in the packet
             unsigned char bcc2_rcv = teste_[realsize - 2];
@@ -858,10 +862,10 @@ int llread(unsigned char *packet)
                 packet[i - 8] = teste_[i];
             }
 
-            /*printf("[PACKET] ");
+            printf("[PACKET] ");
             for (int i = 0; i < realsize-10; i++)
                 printf("%x ", packet[i]);
-            printf("\n");*/
+            printf("\n\n");
 
             // Validate Info frame and choose which packet to send
             // +4 to skip F, A, C and BCC1 and -6 to not go over and skip BCC2 and F
@@ -882,18 +886,24 @@ int llread(unsigned char *packet)
                 printf("[LOG] Faulty Info Packet.\n");
                 printf("[LOG] Sending REJ frame.\n");
 
-                if (holder[2] == I_0)
+                /*if (holder[2] == I_0)
                     write(fd, _REJ_0, 5);
                 else if (holder[2] == I_1)
                     write(fd, _REJ_1, 5);
                 else
-                    printf("[ERROR] Invalid sequence number!\n");
+                    printf("[ERROR] Invalid sequence number!\n");*/
+                if (curSeqNum == 0)
+                    write(fd, _REJ_0, 5);
+                else if (curSeqNum == 1)
+                    write(fd, _REJ_1, 5);
+                
+                return -1;
             }
         }
     }
 
     free(holder);
-
+    printf("RETURN: %d\n", realsize-10);
     return realsize-10;
 }
 
