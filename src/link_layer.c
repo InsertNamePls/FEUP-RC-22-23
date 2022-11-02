@@ -934,6 +934,10 @@ int llclose(int showStatistics)
         alarmEnabled = FALSE;
     }
 
+    if(showStatistics == TRUE){
+        printf("[STATISTICS] Time running: %f\n", duration);
+    }
+
     if (final != 0)
     {
         return 1;

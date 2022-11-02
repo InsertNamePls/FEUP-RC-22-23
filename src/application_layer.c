@@ -8,6 +8,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
 
 #include "application_layer.h"
 #include "link_layer.h"
@@ -93,6 +94,9 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     return;
   }
 
+  clock_t start, end;
+  start = clock();
+
   if (cons.role == LlTx)
   {
     // Transmitter starts transfering data:
@@ -106,6 +110,10 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
       
       apWrite(pengu);
     }
+
+    end = clock();
+    duration = ((float)end - start)/CLOCKS_PER_SEC;
+
     llclose(1);
   }
   else if (cons.role == LlRx)
