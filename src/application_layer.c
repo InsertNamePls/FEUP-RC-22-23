@@ -59,11 +59,6 @@ void apWrite(FILE *pengu)
   int i=0;
   while ((bytesRead = fread(buffer, 1, PAYLOAD, pengu)) > 0)
   {
-    /*printf("[INITIAL PACKET #%d] ", i);
-      for(int j=0;j<bytesRead;j++)
-        printf("%x ", buffer[j]);
-    printf("\n");*/
-
     unsigned char dataPacket[bytesRead + 4];
     dataPacket[0] = 1; // control field
     dataPacket[1] = i % 255; // sequence number
@@ -81,6 +76,54 @@ void apWrite(FILE *pengu)
     i++;
   }
   fclose(pengu);
+}
+
+int getBytesLength(int bytes){
+  int len, i = 1;
+  for(len = 0;i < bytes;len++){
+    i *= 255;
+  }
+
+  return len;
+}
+
+// Return size of control packet or -1 in case of error
+int createControlPacket(unsigned char* packet, unsigned char type, struct stat fInfo, char* filename){
+  packet[0] = type;            // Control field
+  packet[1] = 0x00;            // T field for file size
+
+  // Get octets from filesize
+  int filesize = fInfo.st_size;
+  int fsizeLen = getBytesLength(filesize);
+  if(fsizeLen > PAYLOAD){
+    printf("[ERROR] File size cannot fit a byte.\n");
+    return -1;
+  }
+  packet[2] = fsizeLen;
+  
+  // Save bytes on packet
+  packet[3] = (unsigned)filesize & 0xFF; 
+  for(int i = 1, j=8; i < fsizeLen; j*=2, i++){
+    packet[3+i] = (unsigned)filesize >> j & 0xFF;
+  }
+
+  packet[3+fsizeLen] = 0x01;                       // T field for filename
+  int fnameLen = strlen(filename);
+  if(fnameLen > PAYLOAD){
+    printf("[ERROR] File size cannot fit a byte.\n");
+    return -1;
+  }
+  packet[4+fsizeLen] = fnameLen;                    // L field for filename
+  for(int i=0;i<fnameLen;i++){
+    packet[5+fsizeLen+i] = filename[i];
+  }
+
+  int finalsize = 5 + fsizeLen + fnameLen; 
+  if(finalsize <= PAYLOAD) return finalsize;
+  else {
+    printf("[ERROR] Control packet exceeds maximum size.\n");
+    return -1;
+  }
 }
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
@@ -105,8 +148,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     if (pengu != NULL){
       stat(filename, &file_info);
       file_size = file_info.st_size;
-
-      //printf("FILESIZE: %d\n", file_size);
       
       apWrite(pengu);
     }
@@ -126,17 +167,8 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     FILE *file = fopen(filename, "wb");
 
     int bytes_read;
-    int i=0;
     while((bytes_read = llread(buf)) > 0){
-
-      /*printf("BYTES READ: %d \n", bytes_read);
-      printf("[FINAL PACKET #%d] ", i);
-      for(int j=0;j<bytes_read;j++)
-        printf("%x ", buf[j]);
-      printf("\n");*/
-
       fwrite(buf, sizeof(unsigned char), bytes_read, file);
-      i++;
     }
     
      fclose(file);

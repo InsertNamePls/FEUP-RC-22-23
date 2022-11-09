@@ -492,7 +492,6 @@ int read_IFrameRes(int *totalBytes)
                 else if (rcv_control_value == (curSeqNum + 1) % 2)
                 {
                     // If the control value received (in a RR) is the opposite of the I frame one then it can send another one
-                    // printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
                     printf("[LOG] Received RR.\n");
                     frame_rcv = TRUE;
                     next_IFrame = TRUE;
@@ -501,7 +500,6 @@ int read_IFrameRes(int *totalBytes)
                 else
                 {
                     // If the control value received is invalid then send the I frame again
-                    // printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
                     printf("[ERROR] RR: Wrong sequence number, discarting frame.\n");
                     frame_rcv = TRUE;
                 }
@@ -511,15 +509,11 @@ int read_IFrameRes(int *totalBytes)
                     state = START;
                 else if ((rcv_control_value) == curSeqNum)
                 {
-                    //
-                    // printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
                     printf("[LOG] Received corresponding REJ.\n");
                     frame_rcv = TRUE;
                 }
                 else
                 {
-                    // printf("[DEBUG] Control Value: %d   Current sequence number: %d\n" ,rcv_control_value,curSeqNum);
-                    //  Keep the REJ, discard until you get the right seq. num
                     printf("[ERROR] REJ: Wrong sequence number, discarting frame.\n");
                     frame_rcv = TRUE;
                 }
@@ -639,13 +633,10 @@ int llopen(LinkLayer connectionParameters)
 unsigned char calculateBCC2(const unsigned char *packet, int packetsize)
 {
     unsigned char bcc2 = 0x00;
-    // printf("[DEBUG BBC2] ");
     for (int i = 0; i < packetsize; i++)
     {
         bcc2 = bcc2 ^ packet[i];
-        // printf("%x ", packet[i]);
     }
-    // printf("\n");
     return bcc2;
 }
 
@@ -661,12 +652,7 @@ int llwrite(const unsigned char *buf, int bufSize)
     unsigned char auxBuffer[bufSize * 2];
     int auxBufferIndex = 0;
     unsigned char bcc2 = calculateBCC2(buf, bufSize);
-    /*printf("[PACKET RAW] ");
-    for (int i = 0; i < bufSize; i++)
-    {
-        printf("%x ", buf[i]);
-    }
-    printf("\n");*/
+
     for (int i = 0; i < bufSize; i++)
     {
         if (buf[i] == F)
@@ -689,12 +675,11 @@ int llwrite(const unsigned char *buf, int bufSize)
     }
 
     // need to stuff bcc2
-    //printf("[DEBUG] bcc2 = %x\n", bcc2);
-    if (bcc2 == F) {//printf("IT ACTUALLY HAPPEND\n");
+    if (bcc2 == F) {
         auxBuffer[auxBufferIndex] = S1;
         auxBufferIndex++;
         auxBuffer[auxBufferIndex] = S2;
-    } else if (bcc2 == S1){//printf("IT ACTUALLY HAPPEND\n");
+    } else if (bcc2 == S1){
         auxBuffer[auxBufferIndex] = S1;
         auxBufferIndex++;
         auxBuffer[auxBufferIndex] = S3;
@@ -714,21 +699,12 @@ int llwrite(const unsigned char *buf, int bufSize)
     // Copy buffer data to packet
     memcpy(finalPacket + 4, auxBuffer, auxBufferIndex);
     // Complete packet with trailer
-    //finalPacket[finalpacketSize - 2] = bcc2; 
     finalPacket[finalpacketSize - 1] = F;
-
-    // DEBUG prints
-    /*printf("\n\n###########################################################################\n\n");
-    printf("[PACKET WRITTEN]");
-    for (int i = 0; i < finalpacketSize; i++)
-        printf("%x ", finalPacket[i]);
-    printf("\n");*/
 
     next_IFrame = FALSE;
 
     (void)signal(SIGALRM, alarmHandler);
 
-    // missing actual timeout and number of tries values
     while (alarmCount < ll.nRetransmissions && next_IFrame == FALSE)
     {
         // Call the alarm
@@ -744,7 +720,7 @@ int llwrite(const unsigned char *buf, int bufSize)
             alarmEnabled = TRUE;
         }
 
-        // Read response (missing DISC processing)
+        // Read response
         // Only leaves the sending frame loop once it has received a correct RR
         if (read_IFrameRes(&totalWrittenBytes) == TRUE)
         {
@@ -754,7 +730,6 @@ int llwrite(const unsigned char *buf, int bufSize)
                 printf("[LOG] Invalid Info Frame.\n");
                 printf("[LOG] Resending packet.\n");
 
-                //Need to reset alarm and then reset variables
                 alarm(0);
                 alarmEnabled = FALSE;
                 alarmCount++;
@@ -765,7 +740,6 @@ int llwrite(const unsigned char *buf, int bufSize)
             printf("[ERROR] Response not received.\n");
             printf("[LOG] Retrying connection.\n");
         }
-        // printf("\n\nTotal Response bytes read: %d\n\n",totalWrittenBytes);
     }
     if (alarmEnabled == TRUE)
     {
@@ -783,12 +757,11 @@ int llread(unsigned char *packet)
 {
     unsigned char *holder = (unsigned char*)malloc(sizeof(unsigned char*)*(PAYLOAD+10));
     unsigned char aux[PAYLOAD + 10];
-    //unsigned char data[PAYLOAD];
 
     int realsize = 0;
     int totalReadBytes = -1;
 
-    // It can only return FALSE when DISC is found (still needs taking care of)
+    // It can only return FALSE when DISC is found
     int frame_read = read_IFrame(holder, &totalReadBytes);
     if (totalReadBytes > -1)
     {
@@ -808,12 +781,6 @@ int llread(unsigned char *packet)
         }
         else
         {
-            // printf("\n\n###########################################################################\n\n");
-            /*printf("[PACKET READ BEFORE DESTUFF]\n");
-            for (int i = 0; i < totalReadBytes; i++)
-                printf("%x ", holder[i]);
-            printf("\n");*/
-
             // Start destuffing the holder
             for (int i = 0; i < totalReadBytes; i++)
             {
@@ -838,12 +805,6 @@ int llread(unsigned char *packet)
             for (int i = 0; i < realsize; i++)
                 teste_[i] = aux[i];
 
-            // printf("Unstuffed size: %d\n", realsize);
-            /*printf("[PACKET DESTUFF] ");
-            for (int i = 0; i < realsize; i++)
-                printf("%x ", teste_[i]);
-            printf("\n");*/
-
             // Get the bcc2 in the packet and calculate bcc2 in the packet
             unsigned char bcc2_rcv = teste_[realsize - 2];
             unsigned char bcc2aux[realsize - 6];
@@ -857,11 +818,6 @@ int llread(unsigned char *packet)
             {
                 packet[i - 8] = teste_[i];
             }
-
-            /*printf("[PACKET] ");
-            for (int i = 0; i < realsize-10; i++)
-                printf("%x ", packet[i]);
-            printf("\n");*/
 
             // Validate Info frame and choose which packet to send
             // +4 to skip F, A, C and BCC1 and -6 to not go over and skip BCC2 and F
