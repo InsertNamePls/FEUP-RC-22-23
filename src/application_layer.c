@@ -8,15 +8,15 @@
 #include <termios.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
 
 #include "application_layer.h"
 #include "link_layer.h"
 
-#define PAYLOAD 600 // mover isto para configs.h
-#define DATA 0x01
-#define START 0x02
-#define END 0x03
-#define MAX_FIELD_SIZE 255
+struct stat file_info;
+int file_size;
+
+#define PAYLOAD 600
 
 LinkLayerRole getRole(const char *role)
 {
@@ -60,13 +60,8 @@ void apWrite(FILE *pengu)
   int i=0;
   while ((bytesRead = fread(buffer, 1, PAYLOAD, pengu)) > 0)
   {
-    /*printf("[INITIAL PACKET #%d] ", i);
-      for(int j=0;j<bytesRead;j++)
-        printf("%x ", buffer[j]);
-    printf("\n");*/
-
     unsigned char dataPacket[bytesRead + 4];
-    dataPacket[0] = DATA; // control field
+    dataPacket[0] = 1; // control field
     dataPacket[1] = i % 255; // sequence number
     dataPacket[2] = bytesRead / 256; // number of octects (divisor)
     dataPacket[3] = bytesRead % 256; // number of octets (remainder)
@@ -80,8 +75,6 @@ void apWrite(FILE *pengu)
 
     totalBytesRead += bytesRead;
     i++;
-
-    //sleep(3);
   }
   fclose(pengu);
 }
@@ -103,7 +96,7 @@ int createControlPacket(unsigned char* packet, unsigned char type, struct stat f
   // Get octets from filesize
   int filesize = fInfo.st_size;
   int fsizeLen = getBytesLength(filesize);
-  if(fsizeLen > MAX_FIELD_SIZE){
+  if(fsizeLen > PAYLOAD){
     printf("[ERROR] File size cannot fit a byte.\n");
     return -1;
   }
@@ -117,7 +110,7 @@ int createControlPacket(unsigned char* packet, unsigned char type, struct stat f
 
   packet[3+fsizeLen] = 0x01;                       // T field for filename
   int fnameLen = strlen(filename);
-  if(fnameLen > MAX_FIELD_SIZE){
+  if(fnameLen > PAYLOAD){
     printf("[ERROR] File size cannot fit a byte.\n");
     return -1;
   }
@@ -145,41 +138,24 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     return;
   }
 
+  clock_t start, end;
+  start = clock();
+
   if (cons.role == LlTx)
   {
     // Transmitter starts transfering data:
-    // First a control packet is sent
-    // Then data packets are created, sent by llwrite and validated by reader
+    // Data packets are created, sent by llwrite and validated by reader
     FILE *pengu = getFile(filename);
     if (pengu != NULL){
-      struct stat file_info;
       stat(filename, &file_info);
-
-      unsigned char controlPacket[PAYLOAD];
-      int ctrlPacketSize = createControlPacket(controlPacket, START, file_info, filename);
-      int bytes_written;
-      /*printf("[CONTROL PACKET] ");
-      for(int i=0;i<ctrlPacketSize;i++){
-        printf("%x ", controlPacket[i]);
-      }
-      printf("\n");*/
-      if(bytes_written = llwrite(controlPacket, ctrlPacketSize) < 0) {
-        printf("[ERROR] Control packet start couldn't be sent.\n");
-        printf("[LOG] Aborting data transfer.\n");
-        llclose(0);
-        return;
-      }
+      file_size = file_info.st_size;
       
       apWrite(pengu);
-
-      ctrlPacketSize = createControlPacket(controlPacket, END, file_info);
-      if(bytes_written = llwrite(controlPacket, ctrlPacketSize) < 0) {
-        printf("[ERROR] Control packet end couldn't be sent.\n");
-        printf("[LOG] Aborting data transfer.\n");
-        llclose(0);
-        return;
-      }
     }
+
+    end = clock();
+    duration = ((float)end - start)/CLOCKS_PER_SEC;
+
     llclose(1);
   }
   else if (cons.role == LlRx)
@@ -188,34 +164,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     //Data packets are read, validated and written on file in case of success
     printf("[LOG] Reader Ready.\n");
 
-    int bytes_read;
     unsigned char buf[PAYLOAD];
-    // Read start control packet
-    if((bytes_read = llread(buf)) < 0) {
-      printf("[ERROR] Couldn't read control packet.\n");
-      llclose(0);
-      return;
-    } else {
-      
-    }
-    
     FILE *file = fopen(filename, "wb");
 
-    //verify control packet start
-    bytes_read = llread(buf);
-
-    int i=0;
-    for(i = 0; i < 10968/PAYLOAD+2;i++){
-
-      /*printf("BYTES READ: %d \n", bytes_read);
-      printf("[FINAL PACKET #%d] ", i);
-      for(int j=0;j<bytes_read;j++)
-        printf("%x ", buf[j]);
-      printf("\n");*/
-      bytes_read = llread(buf);
-      if(bytes_read >= 0) 
-        fwrite(buf, sizeof(unsigned char), bytes_read, file);
-      else printf("[ERROR] Llread didn't work as expected.\n");
+    int bytes_read;
+    while((bytes_read = llread(buf)) > 0){
+      fwrite(buf, sizeof(unsigned char), bytes_read, file);
     }
     
      fclose(file);
