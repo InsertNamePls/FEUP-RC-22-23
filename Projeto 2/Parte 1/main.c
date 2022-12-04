@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "utils.h"
 
 int main(int argc, char *argv[]){
@@ -9,13 +6,13 @@ int main(int argc, char *argv[]){
     if(argc != 2){
         printf("[ERROR] Invalid argument!\n");
         printf("*** Usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
-        exit(1);
+        exit(-1);
     }
     Arguments args;
     if(parse_arguments(&args, argv[1]) == -1){
         printf("[ERROR] Invalid argument!\n");
         printf("*** Usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
-        exit(1);    
+        exit(-1);    
     }   
     
     printf("Arguments: \n");
@@ -36,7 +33,6 @@ int main(int argc, char *argv[]){
     connect_socket(sockfd, ip_address, port);
 
     // Just some feedback
-    printf("[LOG] From Control Socket: \n");
     char *buffer = (char *)malloc(MAX_LENGTH*sizeof(char)); 
     size_t size = MAX_LENGTH;
     read_from_socket(sockfd, buffer, size);
@@ -46,6 +42,10 @@ int main(int argc, char *argv[]){
     //5-Calculate port
     //7-Send the file to client with the given port
     //8-Close sockets
+    if(close_connection(sockfd) < 0){
+        printf("[ERROR] Couldn't close the connection.\n");
+        exit(-1);
+    }
 
     free(buffer);
     //printf("FTP Download Protocol in the makings, come back soon!\n");

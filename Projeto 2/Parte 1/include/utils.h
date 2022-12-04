@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include<arpa/inet.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/socket.h>
 
 // Macros
 #define MAX_LENGTH 255
@@ -23,4 +25,5 @@ int parse_arguments(Arguments *args, char *input);
 int create_socket();
 char* getIP(char* hostname);
 void connect_socket(int sockfd, char* ip, int port);
-void read_from_socket(int sockfd, char* msg, size_t size);
+void read_from_socket(int sockfd, char* buffer, size_t size);
+int close_connection(int sockfd);

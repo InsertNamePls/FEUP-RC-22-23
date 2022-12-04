@@ -54,7 +54,7 @@ char* getIP(char* hostname){
     struct hostent *h;
 
     if ((h = gethostbyname(hostname)) == NULL) {
-        herror("gethostbyname()");
+        printf("[ERROR] Couldn't get IP address.\n");
         exit(-1);
     }
 
@@ -71,15 +71,21 @@ void connect_socket(int sockfd, char* ip, int port){
     if (connect(sockfd,
                 (struct sockaddr *) &server_addr,
                 sizeof(server_addr)) < 0) {
-        perror("connect()");
+        printf("[ERROR] Couldn't connect socket.\n");
         exit(-1);
     }
 }
 
 void read_from_socket(int sockfd, char* buffer, size_t size){
     FILE *fp = fdopen(sockfd, "r");
+    printf("[LOG] From Control Socket: \n");
     do {
         buffer = fgets(buffer, size, fp);
         printf("%s", buffer);
     } while (!('1' <= buffer[0] && buffer[0] <= '5') || buffer[3] != ' ');
+}
+
+int close_connection(int sockfd){
+    printf("[LOG] Closing connection.\n");
+    return close(sockfd);
 }
