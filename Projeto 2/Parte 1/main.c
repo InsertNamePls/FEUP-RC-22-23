@@ -6,13 +6,13 @@ int main(int argc, char *argv[]){
     //PROGRAM STEPS
     //1-Parse arguments
     if(argc != 2){
-        printf("[ERROR] Invalid arguments!\n");
+        printf("[ERROR] Invalid argument!\n");
         printf("*** Usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
         exit(1);
     }
     Arguments args;
-    if(parse_arguments(args, argv[1]) == -1){
-        printf("[ERROR] Invalid arguments!\n");
+    if(parse_arguments(&args, argv[1]) == -1){
+        printf("[ERROR] Invalid argument!\n");
         printf("*** Usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
         exit(1);    
     }   
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
     //7-Send the file to client with the given port
     //8-Close sockets
 
-    printf("FTP Download Protocol in the makings, come back soon!\n");
+    //printf("FTP Download Protocol in the makings, come back soon!\n");
 
     return 0;
 }

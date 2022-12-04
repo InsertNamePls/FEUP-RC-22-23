@@ -12,6 +12,6 @@
 
 1. Compile the application using the provided Makefile.
 
-2. Test the protocol by running the download application replacing the fields in bold below:
+2. Test the protocol by running the download application replacing the fields in bold below (user and password are optional):
 <br> &nbsp;&nbsp;&nbsp;$ make
 <br> &nbsp;&nbsp;&nbsp;$ ./bin/download ftp://[**\<user>**:**\<password>**@]**\<host>**/**\<url-path>**	

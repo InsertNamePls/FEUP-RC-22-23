@@ -12,4 +12,4 @@ typedef struct {
 } Arguments;
 
 // Functions
-int parse_arguments(Arguments args, char* input);
+int parse_arguments(Arguments *args, char *input);
