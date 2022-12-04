@@ -1,8 +1,22 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include "utils.h"
 
 int main(int argc, char *argv[]){
     //PROGRAM STEPS
     //1-Parse arguments
+    if(argc != 2){
+        printf("[ERROR] Invalid arguments!\n");
+        printf("*** Usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
+        exit(1);
+    }
+    Arguments args;
+    if(parse_arguments(args, argv[1]) == -1){
+        printf("[ERROR] Invalid arguments!\n");
+        printf("*** Usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
+        exit(1);    
+    }   
+    
     //2-Create socket and connect to server
     //3-Login with user and password
     //4-Enter passive mode

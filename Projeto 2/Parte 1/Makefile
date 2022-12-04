@@ -14,7 +14,7 @@ HOSTNAME = google.com
 .PHONY: all
 all: $(BIN)/download $(BIN)/getip $(BIN)/clientTCP
 
-$(BIN)/download: main.c #$(SRC)/*.c
+$(BIN)/download: main.c $(SRC)/utils.c
 	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
 
 $(BIN)/getip: $(SRC)/getip.c
