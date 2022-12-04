@@ -12,9 +12,9 @@ HOSTNAME = google.com
 
 # Targets
 .PHONY: all
-all: $(BIN)/main $(BIN)/getip $(BIN)/clientTCP
+all: $(BIN)/download $(BIN)/getip $(BIN)/clientTCP
 
-$(BIN)/main: main.c #$(SRC)/*.c
+$(BIN)/download: main.c #$(SRC)/*.c
 	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
 
 $(BIN)/getip: $(SRC)/getip.c
@@ -33,6 +33,6 @@ run_clientTCPexample: $(BIN)/clientTCP
 
 .PHONY: clean
 clean:
-	rm -f $(BIN)/main
+	rm -f $(BIN)/download
 	rm -f $(BIN)/getip
 	rm -f $(BIN)/clientTCP

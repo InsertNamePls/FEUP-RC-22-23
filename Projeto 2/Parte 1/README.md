@@ -14,4 +14,4 @@
 
 2. Test the protocol by running the download application replacing the fields in bold below:
 <br> &nbsp;&nbsp;&nbsp;$ make
-<br> &nbsp;&nbsp;&nbsp;$ download ftp://[**\<user>**:**\<password>**@]**\<host>**/**\<url-path>**	
+<br> &nbsp;&nbsp;&nbsp;$ ./bin/download ftp://[**\<user>**:**\<password>**@]**\<host>**/**\<url-path>**	
