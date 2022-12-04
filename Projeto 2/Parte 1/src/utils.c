@@ -16,11 +16,11 @@ int parse_arguments(Arguments *args, char *input){
             //printf("[ERROR] Couldn't parse user and pass\n");
             return -1;
         }    
-        printf("Arguments: \n");
+        /*printf("Arguments: \n");
         printf("User: %s\n", args->user);
         printf("Password: %s\n", args->password);
         printf("Hostname: %s\n", args->host);
-        printf("Path: %s\n", args->urlPath);
+        printf("Path: %s\n", args->urlPath);*/
 
         return 1;
     }
@@ -29,9 +29,13 @@ int parse_arguments(Arguments *args, char *input){
             //printf("[ERROR] Couldn't parse host and path\n");
             return -1;
         } 
-        printf("Arguments: \n");
+
+        strcpy(args->user, "anonymous");
+        strcpy(args->password, "pass");
+
+        /*printf("Arguments: \n");
         printf("Hostname: %s\n", args->host);
-        printf("Path: %s\n", args->urlPath);
+        printf("Path: %s\n", args->urlPath);*/
 
         return 1;
     }

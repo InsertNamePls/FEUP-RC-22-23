@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "utils.h"
 
 int main(int argc, char *argv[]){
@@ -17,6 +18,12 @@ int main(int argc, char *argv[]){
         exit(1);    
     }   
     
+    printf("Arguments: \n");
+    printf("User: %s\n", args.user);
+    printf("Password: %s\n", args.password);
+    printf("Hostname: %s\n", args.host);
+    printf("Path: %s\n", args.urlPath);
+
     //2-Create socket and connect to server
     //3-Login with user and password
     //4-Enter passive mode
