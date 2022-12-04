@@ -1,7 +1,4 @@
 #include "utils.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
 int parse_arguments(Arguments *args, char *input){
     // Parse beggining
@@ -41,4 +38,48 @@ int parse_arguments(Arguments *args, char *input){
     }
 
     return -1;
+}
+
+int create_socket(){
+    int sockfd; 
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("socket()");
+        exit(-1);
+    }
+
+    return sockfd;
+}
+
+char* getIP(char* hostname){
+    struct hostent *h;
+
+    if ((h = gethostbyname(hostname)) == NULL) {
+        herror("gethostbyname()");
+        exit(-1);
+    }
+
+    return inet_ntoa(*((struct in_addr *)h->h_addr));
+}
+void connect_socket(int sockfd, char* ip, int port){
+    struct sockaddr_in server_addr;
+    /*server address handling*/
+    bzero((char *) &server_addr, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr(ip);    /*32 bit Internet address network byte ordered*/
+    server_addr.sin_port = htons(port);        /*server TCP port must be network byte ordered */
+
+    if (connect(sockfd,
+                (struct sockaddr *) &server_addr,
+                sizeof(server_addr)) < 0) {
+        perror("connect()");
+        exit(-1);
+    }
+}
+
+void read_from_socket(int sockfd, char* buffer, size_t size){
+    FILE *fp = fdopen(sockfd, "r");
+    do {
+        buffer = fgets(buffer, size, fp);
+        printf("%s", buffer);
+    } while (!('1' <= buffer[0] && buffer[0] <= '5') || buffer[3] != ' ');
 }

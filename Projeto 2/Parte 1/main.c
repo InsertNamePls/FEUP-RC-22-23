@@ -25,12 +25,29 @@ int main(int argc, char *argv[]){
     printf("Path: %s\n", args.urlPath);
 
     //2-Create socket and connect to server
+
+    // Get IP with hostname
+    char ip_address[16];
+    int port = 21;
+    strcpy(ip_address, getIP(args.host));
+    
+    // Create and connect socket
+    int sockfd = create_socket();
+    connect_socket(sockfd, ip_address, port);
+
+    // Just some feedback
+    printf("[LOG] From Control Socket: \n");
+    char *buffer = (char *)malloc(MAX_LENGTH*sizeof(char)); 
+    size_t size = MAX_LENGTH;
+    read_from_socket(sockfd, buffer, size);
+
     //3-Login with user and password
     //4-Enter passive mode
     //5-Calculate port
     //7-Send the file to client with the given port
     //8-Close sockets
 
+    free(buffer);
     //printf("FTP Download Protocol in the makings, come back soon!\n");
 
     return 0;
