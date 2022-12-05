@@ -38,8 +38,19 @@ int main(int argc, char *argv[]){
     read_from_socket(sockfd, buffer, size);
 
     //3-Login with user and password
+    send_credentials(sockfd, args.user, args.password);
     //4-Enter passive mode
+    enter_passive_mode(sockfd);
+    read_from_socket(sockfd, buffer, size);
+    
     //5-Calculate port
+    int new_port = get_new_port(buffer);
+    if(new_port < 0){
+        printf("[ERROR] Invalid port read from passive mode.\n");
+        exit(-1);
+    }
+    printf("[LOG] Client Side port: %d\n", new_port);
+
     //7-Send the file to client with the given port
     //8-Close sockets
     if(close_connection(sockfd) < 0){

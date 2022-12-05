@@ -80,9 +80,51 @@ void read_from_socket(int sockfd, char* buffer, size_t size){
     FILE *fp = fdopen(sockfd, "r");
     printf("[LOG] From Control Socket: \n");
     do {
+        memset(buffer, 0, size);
         buffer = fgets(buffer, size, fp);
         printf("%s", buffer);
     } while (!('1' <= buffer[0] && buffer[0] <= '5') || buffer[3] != ' ');
+}
+
+void send_credentials(int sockfd, char* user, char* password){
+    printf("[LOG] Sending user to socket.\n"); 
+    char buffer[MAX_LENGTH];
+    char command[MAX_LENGTH]; 
+    sprintf(command, "user %s\n", user);
+    size_t bytes;
+    if ((bytes = write(sockfd, command, 6+strlen(user))) <= 0){
+        printf("[ERROR] Couldn't write to socket.\n");
+        exit(-1);
+    }
+    read_from_socket(sockfd, buffer, MAX_LENGTH);
+    //printf("Written %ld bytes\n", bytes);
+
+    printf("[LOG] Sending password to socket.\n");
+    sprintf(command, "pass %s\n", password);
+    if ((bytes = write(sockfd, command, 6+strlen(password))) <= 0){
+        printf("[ERROR] Couldn't write to socket.\n");
+        exit(-1);
+    }
+    read_from_socket(sockfd, buffer, MAX_LENGTH);
+    //printf("Written %ld bytes\n", bytes);
+}
+
+void enter_passive_mode(int sockfd){
+    size_t bytes;
+    printf("[LOG] Sending pasv to socket.\n");
+    if ((bytes = write(sockfd, "pasv\n", 6)) <= 0){
+        printf("[ERROR] Couldn't write to socket.\n");
+        exit(-1);
+    }
+}
+
+int get_new_port(char* buffer){
+    int lb, rb;
+    if(sscanf(buffer, "227 Entering Passive Mode (193,137,29,15,%d,%d).", &lb, &rb) == 2){
+        return lb*255+rb;
+    }
+    
+    return -1;
 }
 
 int close_connection(int sockfd){
