@@ -60,6 +60,7 @@ char* getIP(char* hostname){
 
     return inet_ntoa(*((struct in_addr *)h->h_addr));
 }
+
 void connect_socket(int sockfd, char* ip, int port){
     struct sockaddr_in server_addr;
     /*server address handling*/
@@ -78,9 +79,8 @@ void connect_socket(int sockfd, char* ip, int port){
 
 void read_from_socket(int sockfd, char* buffer, size_t size){
     FILE *fp = fdopen(sockfd, "r");
-    printf("[LOG] From Control Socket: \n");
+    printf("[LOG] From Control Socket #%d: \n", sockfd);
     do {
-        memset(buffer, 0, size);
         buffer = fgets(buffer, size, fp);
         printf("%s", buffer);
     } while (!('1' <= buffer[0] && buffer[0] <= '5') || buffer[3] != ' ');
@@ -112,7 +112,7 @@ void send_credentials(int sockfd, char* user, char* password){
 void enter_passive_mode(int sockfd){
     size_t bytes;
     printf("[LOG] Sending pasv to socket.\n");
-    if ((bytes = write(sockfd, "pasv\n", 6)) <= 0){
+    if ((bytes = write(sockfd, "pasv\n", 5)) <= 0){
         printf("[ERROR] Couldn't write to socket.\n");
         exit(-1);
     }
@@ -121,10 +121,42 @@ void enter_passive_mode(int sockfd){
 int get_new_port(char* buffer){
     int lb, rb;
     if(sscanf(buffer, "227 Entering Passive Mode (193,137,29,15,%d,%d).", &lb, &rb) == 2){
-        return lb*255+rb;
+        return lb*256+rb;
     }
     
     return -1;
+}
+
+void send_file(int sockfd, char* path){
+    size_t bytes;
+    char command[MAX_LENGTH]; 
+    printf("[LOG] Sending file...\n");
+    
+    sprintf(command, "retr %s\n", path);
+    if ((bytes = write(sockfd, command, strlen(command))) <= 0){
+        printf("[ERROR] Couldn't write to socket.\n");
+        exit(-1);
+    }
+    //printf("Written %ld bytes\n",  bytes);
+}
+
+void getFilename(char* filename, char* path){
+    char* token;
+
+    token = strtok(path, "/");
+    while(token != NULL){
+        strcpy(filename,token);
+        token = strtok(NULL, "/");
+    }
+}
+
+void save_to_file(int sockfd, char* buffer, size_t size, FILE *f){
+    FILE *fp = fdopen(sockfd, "r");
+    do {
+        memset(buffer, 0, size);
+        if(fgets(buffer, size, fp) != NULL) fprintf(f, "%s", buffer);
+        else break;
+    } while (!('1' <= buffer[0] && buffer[0] <= '5') || buffer[3] != ' ');
 }
 
 int close_connection(int sockfd){

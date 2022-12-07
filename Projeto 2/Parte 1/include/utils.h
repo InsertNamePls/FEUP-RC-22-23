@@ -29,4 +29,7 @@ void read_from_socket(int sockfd, char* buffer, size_t size);
 void send_credentials(int sockfd, char* user, char* password);
 void enter_passive_mode(int sockfd);
 int get_new_port(char* buffer);
+void send_file(int sockfd, char* path);
+void getFilename(char* filename, char* path);
+void save_to_file(int sockfd, char* buffer, size_t size, FILE *f);
 int close_connection(int sockfd);

@@ -27,6 +27,7 @@ int main(int argc, char *argv[]){
     char ip_address[16];
     int port = 21;
     strcpy(ip_address, getIP(args.host));
+    printf("[LOG] Connecting to %s:%d\n", ip_address,port);
     
     // Create and connect socket
     int sockfd = create_socket();
@@ -49,17 +50,32 @@ int main(int argc, char *argv[]){
         printf("[ERROR] Invalid port read from passive mode.\n");
         exit(-1);
     }
-    printf("[LOG] Client Side port: %d\n", new_port);
-
     //7-Send the file to client with the given port
+    // Create receiver socket and connect
+    int rcv_sockfd = create_socket();
+    printf("[LOG] Connecting to %s:%d\n", ip_address, new_port);
+    connect_socket(rcv_sockfd, ip_address, new_port);
+
+    // Send file from control socket
+    send_file(sockfd, args.urlPath);
+    read_from_socket(sockfd, buffer, size);
+    // Save to new file
+    char filename[MAX_LENGTH];
+    getFilename(filename, args.urlPath);
+    FILE *f = fopen(filename, "w");
+    save_to_file(rcv_sockfd, buffer, size, f);
+
     //8-Close sockets
     if(close_connection(sockfd) < 0){
-        printf("[ERROR] Couldn't close the connection.\n");
+        printf("[ERROR] Couldn't close the control socket connection.\n");
+        exit(-1);
+    }
+    if(close_connection(rcv_sockfd) < 0){
+        printf("[ERROR] Couldn't close the client socket connection.\n");
         exit(-1);
     }
 
     free(buffer);
-    //printf("FTP Download Protocol in the makings, come back soon!\n");
 
     return 0;
 }
