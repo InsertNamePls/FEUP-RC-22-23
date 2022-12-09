@@ -31,5 +31,5 @@ void enter_passive_mode(int sockfd);
 int get_new_port(char* buffer);
 void send_file(int sockfd, char* path);
 void getFilename(char* filename, char* path);
-void save_to_file(int sockfd, char* buffer, size_t size, FILE *f);
+int save_to_file(int sockfd, char* filename);
 int close_connection(int sockfd);

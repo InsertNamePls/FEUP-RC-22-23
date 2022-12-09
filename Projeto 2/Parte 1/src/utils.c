@@ -120,10 +120,11 @@ void enter_passive_mode(int sockfd){
 
 int get_new_port(char* buffer){
     int lb, rb;
-    if(sscanf(buffer, "227 Entering Passive Mode (193,137,29,15,%d,%d).", &lb, &rb) == 2){
+    int ip_addr[4];
+    if(sscanf(buffer, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d).", &ip_addr[0], &ip_addr[1], &ip_addr[2], &ip_addr[3], &lb, &rb) == 6){
         return lb*256+rb;
     }
-    
+
     return -1;
 }
 
@@ -150,13 +151,26 @@ void getFilename(char* filename, char* path){
     }
 }
 
-void save_to_file(int sockfd, char* buffer, size_t size, FILE *f){
-    FILE *fp = fdopen(sockfd, "r");
-    do {
-        memset(buffer, 0, size);
-        if(fgets(buffer, size, fp) != NULL) fprintf(f, "%s", buffer);
-        else break;
-    } while (!('1' <= buffer[0] && buffer[0] <= '5') || buffer[3] != ' ');
+int save_to_file(int sockfd, char* filename){
+    FILE *f = fopen(filename, "wb");
+    char buf[1024];
+    size_t bytes;
+
+    printf("[LOG] Starting downloading file.\n");
+    while((bytes = read(sockfd, buf, sizeof(buf)))) {
+        if(bytes < 0){
+            printf("[ERROR] Couldn't read from socket.\n");
+            return -1;
+        }
+        if(fwrite(buf, bytes, 1, f) < 0){
+            printf("[ERROR] Couldn't write to target file.\n");
+        }
+        
+        //printf("[LOG] Written %ld bytes to target file.\n", bytes);
+    }
+
+    printf("[LOG] Finished download.\n");
+    return 1;
 }
 
 int close_connection(int sockfd){

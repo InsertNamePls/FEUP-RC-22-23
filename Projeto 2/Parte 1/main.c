@@ -62,8 +62,9 @@ int main(int argc, char *argv[]){
     // Save to new file
     char filename[MAX_LENGTH];
     getFilename(filename, args.urlPath);
-    FILE *f = fopen(filename, "w");
-    save_to_file(rcv_sockfd, buffer, size, f);
+    if(save_to_file(rcv_sockfd, filename) < 0){
+        printf("[ERROR] File download failed.\n");
+    }
 
     //8-Close sockets
     if(close_connection(sockfd) < 0){
