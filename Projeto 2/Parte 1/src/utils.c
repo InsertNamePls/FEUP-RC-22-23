@@ -10,7 +10,7 @@ int parse_arguments(Arguments *args, char *input){
     // Parse user and password if they exist
     if(strchr(input+6, '@') != NULL){
         if(sscanf(input, "ftp://%[^:]:%[^@]@/%[^/]/%s", args->user, args->password, args->host, args->urlPath) != 4){
-            //printf("[ERROR] Couldn't parse user and pass\n");
+            printf("[ERROR] Couldn't parse user and pass\n");
             return -1;
         }    
         /*printf("Arguments: \n");
@@ -23,7 +23,7 @@ int parse_arguments(Arguments *args, char *input){
     }
     else {
         if(sscanf(input, "ftp://%[^/]/%s", args->host, args->urlPath) != 2){
-            //printf("[ERROR] Couldn't parse host and path\n");
+            printf("[ERROR] Couldn't parse host and path\n");
             return -1;
         } 
 
@@ -79,11 +79,15 @@ void connect_socket(int sockfd, char* ip, int port){
 
 void read_from_socket(int sockfd, char* buffer, size_t size){
     FILE *fp = fdopen(sockfd, "r");
-    printf("[LOG] From Control Socket #%d: \n", sockfd);
+    printf("[LOG] From Socket #%d: \n", sockfd);
     do {
         buffer = fgets(buffer, size, fp);
         printf("%s", buffer);
     } while (!('1' <= buffer[0] && buffer[0] <= '5') || buffer[3] != ' ');
+
+    if(buffer[0] == '5' && buffer[0] == '4'){
+        printf("[ERROR] Failed action.\n");
+    }
 }
 
 void send_credentials(int sockfd, char* user, char* password){
@@ -174,6 +178,6 @@ int save_to_file(int sockfd, char* filename){
 }
 
 int close_connection(int sockfd){
-    printf("[LOG] Closing connection.\n");
+    printf("[LOG] Closing connection #%d.\n", sockfd);
     return close(sockfd);
 }
