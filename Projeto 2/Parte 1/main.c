@@ -60,10 +60,12 @@ int main(int argc, char *argv[]){
     send_file(sockfd, args.urlPath);
     read_from_socket(sockfd, buffer, size);
     // Save to new file
-    char filename[MAX_LENGTH];
-    getFilename(filename, args.urlPath);
-    if(save_to_file(rcv_sockfd, filename) < 0){
-        printf("[ERROR] File download failed.\n");
+    if(buffer[0] != '5' && buffer[0] != '4'){
+        char filename[MAX_LENGTH];
+        getFilename(filename, args.urlPath);
+        if(save_to_file(rcv_sockfd, filename) < 0){
+            printf("[ERROR] File download failed.\n");
+        }
     }
 
     //8-Close sockets

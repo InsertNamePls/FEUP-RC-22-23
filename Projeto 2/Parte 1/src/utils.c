@@ -9,10 +9,10 @@ int parse_arguments(Arguments *args, char *input){
 
     // Parse user and password if they exist
     if(strchr(input+6, '@') != NULL){
-        if(sscanf(input, "ftp://%[^:]:%[^@]@/%[^/]/%s", args->user, args->password, args->host, args->urlPath) != 4){
+        if(sscanf(input, "ftp://%[^:]:%[^@]@%[^/]/%s", args->user, args->password, args->host, args->urlPath) != 4){
             printf("[ERROR] Couldn't parse user and pass\n");
             return -1;
-        }    
+        }
         /*printf("Arguments: \n");
         printf("User: %s\n", args->user);
         printf("Password: %s\n", args->password);
