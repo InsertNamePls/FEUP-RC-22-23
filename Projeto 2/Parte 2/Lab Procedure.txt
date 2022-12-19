@@ -1,0 +1,84 @@
+RCOM PROCEDURE
+---------------
+1 - RESET ALL
+- Microtik router e switch
+  - /system reset-configurations
+- TuxY2, TuxY3, TuxY4
+  - systemctl restart networking
+
+2 - Connect cables
+- TY2E0 -> s 10
+- TY3E0 -> s 2
+- TY4E0 -> s 4
+- TY4E1 -> s 12
+- PY.1 -> r eth0
+- r eth1 -> s 14
+- TY4S0 -> R323-cisco
+- cisco-R323 -> switch or router accordingly
+
+3 - Define ips
+- TuxY2
+  - ifconfig eth0 up 172.16.Y1.1
+- TuxY3
+  - ifconfig eth0 up 172.16.Y0.1
+- TuxY4
+  - ifconfig eth0 up 172.16.Y0.254
+  - ifconfig eth1 up 172.16.Y1.253
+- Router
+  - /ip address add address=172.16.Z.Y9/24 interface=ether1 (Z na I321 = 1, Z na I320 = 2)
+  - /ip address add address=172.16.Y1.254/24 interface=ether2
+
+4 - Create bridges
+- Microtik switch
+  - /interface bridge add name=bridgeY0
+  - /interface bridge add name=bridgeY1
+
+5 - Assign to bridges
+- Microtik switch
+  - /interface bridge port remove [find interface=ether10]
+  - /interface bridge port remove [find interface=ether2]
+  - /interface bridge port remove [find interface=ether4]
+  - /interface bridge port remove [find interface=ether12]
+  - /interface bridge port remove [find interface=ether14]
+
+  - /interface bridge port add bridge=bridgeY0 interface=ether2
+  - /interface bridge port add bridge=bridgeY0 interface=ether4
+  - /interface bridge port add bridge=bridgeY1 interface=ether10
+  - /interface bridge port add bridge=bridgeY1 interface=ether12
+  - /interface bridge port add bridge=bridgeY1 interface=ether14
+
+6 - Gateway configuration
+- TuxY4
+  - echo 1 > /proc/sys/net/ipv4/ip_forward
+  - echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
+
+- TuxY3
+  - route add -net 172.16.Y1.0/24 gw 172.16.Y0.254
+  - route add default gw 172.16.Y0.254 (via tuxY4)
+- TuxY2
+  - route add -net 172.16.Y0.0/24 gw 172.16.Y1.253
+  - route add default gw 172.16.Y1.254 (router)
+- TuxY4
+  - route add default gw 172.16.Y1.254 (router)
+
+- Microtik router
+  - /ip route add dst-address=172.16.Y0.0/24 gateway=172.16.Y1.253 (via tuxY4)
+  - /ip route add dst-address=0.0.0.0/0 gateway=172.16.Z.254 (Z na I321 = 1, Z na I320 = 2)
+
+8 - Enable DNS
+  - echo "nameserver 172.16.Z.1"  > /etc/resolv.conf (Z na I321 = 1, Z na I320 = 2)
+
+7 - Verify NAT on and others (Optional in case of error)
+- Microtik router
+  - /ip firewall nat add chain=srcnat action=masquerade out-interface=ether1
+- TuxY2
+  - echo 1 > /proc/sys/net/ipv4/conf/eth0/accept_redirects
+  - echo 1 > /proc/sys/net/ipv4/conf/all/accept_redirects
+
+
+
+
+
+
+
+

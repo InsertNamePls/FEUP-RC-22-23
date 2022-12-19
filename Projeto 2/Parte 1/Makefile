@@ -12,27 +12,27 @@ HOSTNAME = google.com
 
 # Targets
 .PHONY: all
-all: $(BIN)/download $(BIN)/getip $(BIN)/clientTCP
+all: $(BIN)/download # $(BIN)/getip $(BIN)/clientTCP
 
 $(BIN)/download: main.c $(SRC)/utils.c
 	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
 
-$(BIN)/getip: $(SRC)/getip.c
-	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
+#$(BIN)/getip: $(SRC)/getip.c
+#	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
 
-$(BIN)/clientTCP: $(SRC)/clientTCP.c
-	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
+#$(BIN)/clientTCP: $(SRC)/clientTCP.c
+#	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
 
-.PHONY: run_getIPexample
-run_getIPexample: $(BIN)/getip
-	./$(BIN)/getip $(HOSTNAME)
+#.PHONY: run_getIPexample
+#run_getIPexample: $(BIN)/getip
+#	./$(BIN)/getip $(HOSTNAME)
 
-.PHONY: run_clientTCPexample
-run_clientTCPexample: $(BIN)/clientTCP
-	./$(BIN)/clientTCP
+#.PHONY: run_clientTCPexample
+#run_clientTCPexample: $(BIN)/clientTCP
+#	./$(BIN)/clientTCP
 
 .PHONY: clean
 clean:
 	rm -f $(BIN)/download
-	rm -f $(BIN)/getip
-	rm -f $(BIN)/clientTCP
+#	rm -f $(BIN)/getip
+#	rm -f $(BIN)/clientTCP
